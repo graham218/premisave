@@ -32,7 +32,13 @@ public class AuthService {
     private final EmailService emailService;
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public AuthService(UserRepository userRepository, TokenRepository tokenRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, EmailService emailService, RedisTemplate<String, Object> redisTemplate) {
+    public AuthService(UserRepository userRepository,
+                       TokenRepository tokenRepository,
+                       PasswordEncoder passwordEncoder,
+                       JwtService jwtService,
+                       AuthenticationManager authenticationManager,
+                       EmailService emailService,
+                       RedisTemplate<String, Object> redisTemplate) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -59,15 +65,20 @@ public class AuthService {
         user.setCountry(request.getCountry());
         user.setLanguage(Language.valueOf(request.getLanguage().toUpperCase()));
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole());
+        user.setRole(request.getRole() != null ? request.getRole() : Role.CLIENT);
         user.setVerified(false);
+
         user = userRepository.save(user);
 
         String activationToken = generateToken(user, TokenType.ACTIVATION);
-        emailService.queueEmail(user.getEmail(), "Activate Your Account", buildActivationEmail(activationToken));
+        emailService.queueEmail(
+                user.getEmail(),
+                "Activate Your Premisave Account",
+                buildActivationEmail(activationToken)
+        );
 
         AuthResponse response = new AuthResponse();
-        response.setToken(jwtService.generateToken(user)); // Provisional token, but require verification
+        response.setToken(jwtService.generateToken(user));
         response.setRole(user.getRole().name());
         response.setRedirectUrl(getDashboardUrl(user.getRole()));
         return response;
@@ -77,12 +88,18 @@ public class AuthService {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
+
         User user = (User) authentication.getPrincipal();
+
         if (!user.isVerified()) {
             throw new RuntimeException("Account not verified");
         }
 
-        // Cache user in Redis
+        // Update last login timestamp
+        user.setLastLoginAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        // Optional: cache user in Redis
         redisTemplate.opsForValue().set("user:" + user.getEmail(), user);
 
         AuthResponse response = new AuthResponse();
@@ -93,66 +110,103 @@ public class AuthService {
     }
 
     public void verifyAccount(String tokenStr) {
-        Token token = tokenRepository.findByToken(tokenStr).orElseThrow(() -> new RuntimeException("Invalid token"));
+        Token token = tokenRepository.findByToken(tokenStr)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired token"));
+
         if (token.isUsed() || token.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token expired or used");
+            throw new RuntimeException("Token has expired or already been used");
         }
+
         User user = token.getUser();
         user.setVerified(true);
         userRepository.save(user);
+
         token.setUsed(true);
         tokenRepository.save(token);
     }
 
     public void resendActivation(String email) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
         if (user.isVerified()) {
-            throw new RuntimeException("Already verified");
+            throw new RuntimeException("Account is already verified");
         }
+
         String activationToken = generateToken(user, TokenType.ACTIVATION);
-        emailService.queueEmail(email, "Activate Your Account", buildActivationEmail(activationToken));
+        emailService.queueEmail(
+                email,
+                "Activate Your Premisave Account",
+                buildActivationEmail(activationToken)
+        );
     }
 
     public void resetPassword(ResetPasswordRequest request) {
-        User user = userRepository.findByEmail(request.getEmail()).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
         String resetToken = generateToken(user, TokenType.RESET_PASSWORD);
-        emailService.queueEmail(user.getEmail(), "Reset Password", buildResetEmail(resetToken));
+        emailService.queueEmail(
+                user.getEmail(),
+                "Reset Your Premisave Password",
+                buildResetEmail(resetToken)
+        );
     }
 
     public void changePassword(ChangePasswordRequest request) {
-        // Assume authenticated user
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) auth.getPrincipal();
+
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid old password");
+            throw new RuntimeException("Current password is incorrect");
         }
+
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new RuntimeException("Passwords don't match");
+            throw new RuntimeException("New passwords do not match");
         }
+
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
 
     private String generateToken(User user, TokenType type) {
-        String tokenStr = UUID.randomUUID().toString();
+        String tokenValue = UUID.randomUUID().toString();
+
         Token token = new Token();
-        token.setToken(tokenStr);
+        token.setToken(tokenValue);
         token.setType(type);
-        token.setExpiryDate(LocalDateTime.now().plus(1, ChronoUnit.DAYS));
+        token.setExpiryDate(LocalDateTime.now().plus(24, ChronoUnit.HOURS));
+        token.setUsed(false);
         token.setUser(user);
+
         tokenRepository.save(token);
-        return tokenStr;
+        return tokenValue;
     }
 
     private String buildActivationEmail(String token) {
-        // Load template and replace placeholders
-        String template = "<html><body><h1>Activate Account</h1><a href='http://localhost:8080/auth/verify/" + token + "'>Click to activate</a></body></html>";
-        return template;
+        String link = "http://localhost:8080/auth/verify/" + token;
+        return "<html>" +
+                "<body>" +
+                "<h2>Welcome to Premisave!</h2>" +
+                "<p>Please click the link below to activate your account:</p>" +
+                "<a href='" + link + "' style='padding:10px 20px; background:#007bff; color:white; text-decoration:none; border-radius:5px;'>Activate Account</a>" +
+                "<p>Or copy and paste this link: " + link + "</p>" +
+                "<p>This link expires in 24 hours.</p>" +
+                "</body>" +
+                "</html>";
     }
 
     private String buildResetEmail(String token) {
-        String template = "<html><body><h1>Reset Password</h1><a href='http://localhost:8080/auth/reset-confirm/" + token + "'>Click to reset</a></body></html>";
-        return template;
+        String link = "http://localhost:3000/reset-password?token=" + token; // Adjust to your frontend URL
+        return "<html>" +
+                "<body>" +
+                "<h2>Password Reset Request</h2>" +
+                "<p>Click the link below to reset your password:</p>" +
+                "<a href='" + link + "' style='padding:10px 20px; background:#dc3545; color:white; text-decoration:none; border-radius:5px;'>Reset Password</a>" +
+                "<p>Or copy and paste this link: " + link + "</p>" +
+                "<p>This link expires in 24 hours.</p>" +
+                "</body>" +
+                "</html>";
     }
 
     private String getDashboardUrl(Role role) {
