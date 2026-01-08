@@ -1,5 +1,6 @@
 package com.premisave.auth.enums;
 
-public class TokenType {
-
+public enum TokenType {
+    ACTIVATION,
+    RESET_PASSWORD
 }

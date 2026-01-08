@@ -1,5 +1,7 @@
 package com.premisave.auth.repository;
 
-public class ReviewRepository {
+import com.premisave.auth.entity.Review;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
+public interface ReviewRepository extends MongoRepository<Review, String> {
 }

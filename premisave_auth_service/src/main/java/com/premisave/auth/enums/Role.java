@@ -1,5 +1,10 @@
 package com.premisave.auth.enums;
 
-public class Role {
-
+public enum Role {
+    CLIENT,
+    HOME_OWNER,
+    ADMIN,
+    OPERATIONS,
+    FINANCE,
+    SUPPORT
 }
