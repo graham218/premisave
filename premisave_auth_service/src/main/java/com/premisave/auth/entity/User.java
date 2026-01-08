@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
+@SuppressWarnings("serial")
 @Data
 @Document(collection = "users")
 public class User implements UserDetails {

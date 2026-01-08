@@ -37,7 +37,8 @@ public class ProfileService {
         userRepository.save(user);
     }
 
-    public String uploadProfilePic(MultipartFile file) {
+    @SuppressWarnings("rawtypes")
+	public String uploadProfilePic(MultipartFile file) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         try {
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap("resource_type", "image"));

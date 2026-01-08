@@ -1,6 +1,5 @@
 package com.premisave.auth.service;
 
-import com.premisave.auth.entity.Token;
 import com.premisave.auth.repository.TokenRepository;
 import org.springframework.stereotype.Service;
 
