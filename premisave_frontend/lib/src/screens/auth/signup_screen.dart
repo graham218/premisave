@@ -26,9 +26,9 @@ class SignupScreen extends ConsumerWidget {
     final languageCtrl = TextEditingController(text: 'English');
     final passwordCtrl = TextEditingController();
 
-    ref.listen(authProvider, (_, state) {
-      if (state.token != null) {
-        context.go(state.redirectUrl ?? '/verify');
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.token != null && next.redirectUrl != null && next.isLoading == false) {
+        context.go(next.redirectUrl!);
       }
     });
 

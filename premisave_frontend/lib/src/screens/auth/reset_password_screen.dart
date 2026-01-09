@@ -46,28 +46,15 @@ class ResetPasswordScreen extends ConsumerWidget {
             CustomButton(
               text: 'Change Password',
               onPressed: () async {
-                if (newPasswordController.text != confirmPasswordController.text) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('New passwords do not match')),
-                  );
-                  return;
-                }
-                try {
-                  await authNotifier.changePassword(
-                    oldPasswordController.text,
-                    newPasswordController.text,
-                    confirmPasswordController.text,
-                    ref.read(authProvider).token!,
-                  );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Password changed successfully')),
-                  );
-                  context.go('/login');
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
-                  );
-                }
+                await authNotifier.changePassword(
+                  oldPasswordController.text,
+                  newPasswordController.text,
+                  confirmPasswordController.text,
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Password changed successfully')),
+                );
+                context.go('/login');
               },
             ),
           ],

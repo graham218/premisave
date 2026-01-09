@@ -52,8 +52,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: CircleAvatar(
                 radius: 60,
                 backgroundImage: _imageFile != null
-                    ? FileImage(_imageFile!)
-                    : const CachedNetworkImageProvider('https://via.placeholder.com/150'),
+                    ? FileImage(_imageFile!) as ImageProvider
+                    : CachedNetworkImageProvider('https://via.placeholder.com/150'),
                 child: _imageFile == null ? const Icon(Icons.camera_alt, size: 40) : null,
               ),
             ),

@@ -17,9 +17,9 @@ class LoginScreen extends ConsumerWidget {
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
 
-    ref.listen(authProvider, (_, state) {
-      if (state.token != null) {
-        context.go(authNotifier.getDashboardRoute());
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.token != null && next.redirectUrl != null && next.isLoading == false) {
+        context.go(next.redirectUrl!);
       }
     });
 
@@ -41,12 +41,15 @@ class LoginScreen extends ConsumerWidget {
               const SizedBox(height: 10),
               TextButton(onPressed: () => context.go('/forgot-password'), child: const Text('Forgot Password?')),
               const SizedBox(height: 20),
-              SocialLoginButton(icon: 'google.png', onPressed: authNotifier.googleSignIn),
-              SocialLoginButton(icon: 'facebook.png', onPressed: authNotifier.facebookSignIn),
-              SocialLoginButton(icon: 'apple.png', onPressed: authNotifier.appleSignIn),
+              SocialLoginButton(icon: 'google.png', onPressed: () => authNotifier.googleSignIn(context)),
+              SocialLoginButton(icon: 'facebook.png', onPressed: () => authNotifier.facebookSignIn(context)),
+              SocialLoginButton(icon: 'apple.png', onPressed: () => authNotifier.appleSignIn(context)),
               const SizedBox(height: 10),
               TextButton(onPressed: () => context.go('/signup'), child: const Text('Don\'t have an account? Sign Up')),
-              if (authState.error != null) Text(authState.error!, style: const TextStyle(color: Colors.red)),
+              if (authState.error != null) Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(authState.error!, style: const TextStyle(color: Colors.red)),
+              ),
             ],
           ),
         ),
