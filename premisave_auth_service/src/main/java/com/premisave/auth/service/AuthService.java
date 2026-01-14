@@ -136,6 +136,7 @@ public class AuthService {
         user.setActive(true);
 
         user = userRepository.save(user);
+        System.out.println("DEBUG: User saved to MongoDB with ID: " + user.getId());
 
         String activationToken = generateToken(user, TokenType.ACTIVATION);
         String activationLink = backendUrl + "/auth/verify/" + activationToken;
@@ -143,11 +144,15 @@ public class AuthService {
         try {
             String emailContent = readEmailTemplate(activationEmailPath)
                     .replace("[activationLink]", activationLink);
+            
+            // Use RabbitMQ to queue the email
             emailService.queueEmail(
                     user.getEmail(),
                     "Activate Your Premisave Account",
                     emailContent
             );
+            System.out.println("DEBUG: Email queued for: " + user.getEmail());
+            
         } catch (IOException e) {
             // Fallback to simple email if template fails
             emailService.queueEmail(
@@ -155,6 +160,7 @@ public class AuthService {
                     "Activate Your Premisave Account",
                     buildActivationEmail(activationToken)
             );
+            System.out.println("DEBUG: Using fallback email template for: " + user.getEmail());
         }
 
         AuthResponse response = new AuthResponse();
@@ -291,6 +297,7 @@ public class AuthService {
         token.setUser(user);
 
         tokenRepository.save(token);
+        System.out.println("DEBUG: Token saved for user: " + user.getId());
         return tokenValue;
     }
 
@@ -326,6 +333,9 @@ public class AuthService {
 
     private String readEmailTemplate(String templatePath) throws IOException {
         Resource resource = resourceLoader.getResource("classpath:" + templatePath);
+        if (!resource.exists()) {
+            throw new IOException("Email template not found: " + templatePath);
+        }
         try (Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
             return FileCopyUtils.copyToString(reader);
         }
