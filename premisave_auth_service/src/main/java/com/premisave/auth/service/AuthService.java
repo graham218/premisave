@@ -27,6 +27,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.Year;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
@@ -55,6 +56,9 @@ public class AuthService {
 
     @Value("${email.reset-password.path:templates/reset-password-email.html}")
     private String resetPasswordEmailPath;
+
+    @Value("${email.support:support@premisave.com}")
+    private String supportEmail;
 
     // Dashboard URLs from properties
     @Value("${dashboard.url.client:${frontend.url}/dashboard/client}")
@@ -141,9 +145,14 @@ public class AuthService {
         String activationToken = generateToken(user, TokenType.ACTIVATION);
         String activationLink = backendUrl + "/auth/verify/" + activationToken;
         
-        String emailContent = readEmailTemplate(activationEmailPath)
-                .replace("[activationLink]", activationLink);
+        // Prepare template data
+        Map<String, String> templateData = new HashMap<>();
+        templateData.put("activationLink", activationLink);
+        templateData.put("supportEmail", supportEmail);
+        templateData.put("currentYear", String.valueOf(Year.now().getValue()));
         
+        String emailContent = processEmailTemplate(activationEmailPath, templateData);
+
         // Use RabbitMQ to queue the email
         emailService.queueEmail(
                 user.getEmail(),
@@ -215,8 +224,13 @@ public class AuthService {
         String activationToken = generateToken(user, TokenType.ACTIVATION);
         String activationLink = backendUrl + "/auth/verify/" + activationToken;
         
-        String emailContent = readEmailTemplate(activationEmailPath)
-                .replace("[activationLink]", activationLink);
+        // Prepare template data
+        Map<String, String> templateData = new HashMap<>();
+        templateData.put("activationLink", activationLink);
+        templateData.put("supportEmail", supportEmail);
+        templateData.put("currentYear", String.valueOf(Year.now().getValue()));
+        
+        String emailContent = processEmailTemplate(activationEmailPath, templateData);
         emailService.queueEmail(
                 email,
                 "Activate Your Premisave Account",
@@ -231,8 +245,13 @@ public class AuthService {
         String resetToken = generateToken(user, TokenType.RESET_PASSWORD);
         String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
         
-        String emailContent = readEmailTemplate(resetPasswordEmailPath)
-                .replace("[resetLink]", resetLink);
+        // Prepare template data
+        Map<String, String> templateData = new HashMap<>();
+        templateData.put("resetLink", resetLink);
+        templateData.put("supportEmail", supportEmail);
+        templateData.put("currentYear", String.valueOf(Year.now().getValue()));
+        
+        String emailContent = processEmailTemplate(resetPasswordEmailPath, templateData);
         emailService.queueEmail(
                 user.getEmail(),
                 "Reset Your Premisave Password",
@@ -301,5 +320,17 @@ public class AuthService {
         } catch (IOException e) {
             throw new RuntimeException("Failed to read email template: " + templatePath, e);
         }
+    }
+    
+    private String processEmailTemplate(String templatePath, Map<String, String> data) {
+        String template = readEmailTemplate(templatePath);
+        
+        // Replace placeholders in the format {{placeholder}}
+        for (Map.Entry<String, String> entry : data.entrySet()) {
+            String placeholder = "{{" + entry.getKey() + "}}";
+            template = template.replace(placeholder, entry.getValue());
+        }
+        
+        return template;
     }
 }

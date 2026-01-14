@@ -67,6 +67,7 @@ email:
     path: templates/activation-email.html
   reset-password:
     path: templates/reset-password-email.html
+  support: ${SUPPORT_EMAIL:support@premisave.com}  # Add support email configuration
 
 # ── Dashboard Redirect URLs ──
 dashboard:

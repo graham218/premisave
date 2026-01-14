@@ -1,52 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Activate Your Account</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
-        body { background-color: #f5f7fa; padding: 20px; }
-        .container { max-width: 500px; margin: 0 auto; }
-        .card { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); text-align: center; border: 1px solid #eaeaea; }
-        .logo { color: #2a8f5e; font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-        .tagline { color: #6c757d; font-size: 14px; margin-bottom: 30px; }
-        .welcome { font-size: 24px; color: #2c3e50; margin-bottom: 20px; font-weight: 600; }
-        .message { color: #5a6c7d; line-height: 1.6; margin-bottom: 30px; font-size: 15px; }
-        .btn { display: inline-block; background: #2a8f5e; color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.3s; box-shadow: 0 4px 12px rgba(42,143,94,0.2); }
-        .btn:hover { background: #1d6e44; box-shadow: 0 6px 16px rgba(42,143,94,0.3); }
-        .link-box { margin: 30px 0; padding: 18px; background: #f8f9fa; border-radius: 8px; font-size: 14px; color: #495057; word-break: break-all; border: 1px solid #e9ecef; }
-        .link-box a { color: #2a8f5e; text-decoration: none; }
-        .features { display: flex; justify-content: space-around; margin: 30px 0; }
-        .feature { text-align: center; color: #4a5568; font-size: 13px; }
-        .feature div:first-child { font-size: 20px; margin-bottom: 8px; }
-        .note { color: #6c757d; font-size: 13px; margin-top: 25px; padding-top: 20px; border-top: 1px solid #eaeaea; }
-        .footer { margin-top: 30px; font-size: 12px; color: #adb5bd; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Activate Your Account</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f5f6f8;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+
+    .wrapper {
+      width: 100%;
+      padding: 40px 0;
+      background-color: #f5f6f8;
+    }
+
+    .card {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #2a8f5e, #1d6e44);
+      padding: 32px;
+      text-align: center;
+      color: #ffffff;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .content {
+      padding: 36px 32px;
+      text-align: center;
+      color: #2d2d2d;
+    }
+
+    .content h2 {
+      font-size: 22px;
+      margin-bottom: 12px;
+      color: #1a2b3c;
+    }
+
+    .content p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #555555;
+      margin-bottom: 28px;
+    }
+
+    .features {
+      display: flex;
+      justify-content: space-between;
+      margin: 32px 0;
+      gap: 16px;
+    }
+
+    .feature {
+      text-align: center;
+      color: #5a6c7d;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .feature div:first-child {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #2a8f5e;
+    }
+
+    .cta-button {
+      display: inline-block;
+      background: linear-gradient(135deg, #2a8f5e, #1d6e44);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 16px 38px;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: bold;
+      letter-spacing: 0.4px;
+      box-shadow: 0 10px 22px rgba(42, 143, 94, 0.35);
+      transition: all 0.25s;
+    }
+
+    .cta-button:hover {
+      background: linear-gradient(135deg, #1d6e44, #165c37);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 25px rgba(42, 143, 94, 0.45);
+    }
+
+    .link-box {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f9fbfd;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #495057;
+      word-break: break-all;
+      border: 1px solid #eef2f7;
+    }
+
+    .link-box a {
+      color: #2a8f5e;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .divider {
+      height: 1px;
+      background-color: #e5e7eb;
+      margin: 32px 0;
+    }
+
+    .note {
+      margin-top: 28px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .footer {
+      background-color: #fafafa;
+      padding: 22px;
+      text-align: center;
+      font-size: 12px;
+      color: #8a8a8a;
+    }
+
+    .footer a {
+      color: #2a8f5e;
+      text-decoration: none;
+    }
+
+    @media screen and (max-width: 600px) {
+      .content {
+        padding: 28px 22px;
+      }
+      
+      .header {
+        padding: 28px 22px;
+      }
+
+      .header h1 {
+        font-size: 22px;
+      }
+
+      .features {
+        flex-direction: column;
+        gap: 20px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="logo">Premisave</div>
-            <div class="tagline">Smart Property Management</div>
-            <h1 class="welcome">Welcome to Premisave</h1>
-            <p class="message">Thank you for choosing Premisave! Activate your account to begin managing properties efficiently.</p>
-            <div class="features">
-                <div class="feature"><div>Property</div><div>Management</div></div>
-                <div class="feature"><div>Financial</div><div>Tracking</div></div>
-                <div class="feature"><div>Analytics</div><div>Dashboard</div></div>
-            </div>
-            <a href="[activationLink]" class="btn">Activate Account</a>
-            <div class="link-box">
-                Or copy this link:<br>
-                <a href="[activationLink]">[activationLink]</a>
-            </div>
-            <div class="note">This activation link expires in 24 hours.</div>
-            <div class="footer">
-                Need help? Contact support@premisave.com<br>
-                © 2024 Premisave. All rights reserved.
-            </div>
+  <div class="wrapper">
+    <div class="card">
+      <div class="header">
+        <h1>Welcome to Premisave</h1>
+      </div>
+
+      <div class="content">
+        <h2>Activate Your Account</h2>
+
+        <p>
+          Thank you for choosing Premisave! Activate your account to unlock powerful property management tools and analytics.
+        </p>
+
+        <div class="features">
+          <div class="feature"><div>Portfolio</div><div>Management</div></div>
+          <div class="feature"><div>Financial</div><div>Insights</div></div>
+          <div class="feature"><div>Analytics</div><div>Dashboard</div></div>
         </div>
+
+        <a href="{{activationLink}}" class="cta-button">
+          Activate Account
+        </a>
+
+        <div class="link-box">
+          Or copy this link:<br>
+          <a href="{{activationLink}}">{{activationLink}}</a>
+        </div>
+
+        <div class="divider"></div>
+
+        <p class="note">
+          This activation link will expire in 24 hours.<br>
+          If you did not create this account, no further action is required.
+        </p>
+      </div>
+
+      <div class="footer">
+        <p>
+          Need assistance? <a href="mailto:{{supportEmail}}">Contact Support</a>
+        </p>
+        <p>
+          © {{currentYear}} Premisave. All rights reserved.
+        </p>
+      </div>
     </div>
+  </div>
 </body>
 </html>
