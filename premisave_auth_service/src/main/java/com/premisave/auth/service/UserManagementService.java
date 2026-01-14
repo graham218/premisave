@@ -14,13 +14,18 @@ import java.util.stream.Collectors;
 public class UserManagementService {
 
     private final UserRepository userRepository;
-    private final ModelMapper modelMapper = new ModelMapper();
+    private final ModelMapper modelMapper;
 
-    public UserManagementService(UserRepository userRepository) {
+    public UserManagementService(UserRepository userRepository, ModelMapper modelMapper) {
         this.userRepository = userRepository;
+        this.modelMapper = modelMapper;
     }
 
     public UserDto createUser(UserDto userDto) {
+        if (userRepository.findByEmail(userDto.getEmail()).isPresent()) {
+            throw new RuntimeException("Email already exists");
+        }
+        
         User user = modelMapper.map(userDto, User.class);
         user = userRepository.save(user);
         return modelMapper.map(user, UserDto.class);
@@ -34,47 +39,50 @@ public class UserManagementService {
     }
 
     public void deleteUser(String id) {
-        userRepository.deleteById(id);
+        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        userRepository.delete(user);
     }
 
     public void archiveUser(String id) {
-        User user = userRepository.findById(id).orElseThrow();
+        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         user.setArchived(true);
         userRepository.save(user);
     }
 
     public void unarchiveUser(String id) {
-        User user = userRepository.findById(id).orElseThrow();
+        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         user.setArchived(false);
         userRepository.save(user);
     }
 
     public void activateUser(String id) {
-        User user = userRepository.findById(id).orElseThrow();
+        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         user.setActive(true);
         userRepository.save(user);
     }
 
     public void deactivateUser(String id) {
-        User user = userRepository.findById(id).orElseThrow();
+        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         user.setActive(false);
         userRepository.save(user);
     }
 
     public void verifyUser(String id) {
-        User user = userRepository.findById(id).orElseThrow();
+        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         user.setVerified(true);
         userRepository.save(user);
     }
 
     public void unverifyUser(String id) {
-        User user = userRepository.findById(id).orElseThrow();
+        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         user.setVerified(false);
         userRepository.save(user);
     }
 
     public List<UserDto> searchUsers(UserSearchRequest request) {
         List<User> users = userRepository.searchUsers(request.getQuery());
-        return users.stream().map(u -> modelMapper.map(u, UserDto.class)).collect(Collectors.toList());
+        return users.stream()
+                .map(u -> modelMapper.map(u, UserDto.class))
+                .collect(Collectors.toList());
     }
 }

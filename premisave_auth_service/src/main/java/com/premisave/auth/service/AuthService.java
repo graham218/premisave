@@ -9,6 +9,10 @@ import com.premisave.auth.enums.TokenType;
 import com.premisave.auth.repository.TokenRepository;
 import com.premisave.auth.repository.UserRepository;
 import com.premisave.auth.security.JwtService;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,9 +20,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.FileCopyUtils;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -31,6 +42,51 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final ResourceLoader resourceLoader;
+
+    @Value("${frontend.url:http://localhost:3000}")
+    private String frontendUrl;
+
+    @Value("${backend.url:http://localhost:8080}")
+    private String backendUrl;
+
+    @Value("${email.activation.path:/templates/activation-email.html}")
+    private String activationEmailPath;
+
+    @Value("${email.reset-password.path:/templates/reset-password-email.html}")
+    private String resetPasswordEmailPath;
+
+    // Dashboard URLs from properties
+    @Value("${dashboard.url.client:${frontend.url}/dashboard/client}")
+    private String clientDashboardUrl;
+
+    @Value("${dashboard.url.home-owner:${frontend.url}/dashboard/home-owner}")
+    private String homeOwnerDashboardUrl;
+
+    @Value("${dashboard.url.admin:${frontend.url}/dashboard/admin}")
+    private String adminDashboardUrl;
+
+    @Value("${dashboard.url.operations:${frontend.url}/dashboard/operations}")
+    private String operationsDashboardUrl;
+
+    @Value("${dashboard.url.finance:${frontend.url}/dashboard/finance}")
+    private String financeDashboardUrl;
+
+    @Value("${dashboard.url.support:${frontend.url}/dashboard/support}")
+    private String supportDashboardUrl;
+
+    private Map<Role, String> dashboardUrls;
+
+    @PostConstruct
+    public void init() {
+        dashboardUrls = new HashMap<>();
+        dashboardUrls.put(Role.CLIENT, clientDashboardUrl);
+        dashboardUrls.put(Role.HOME_OWNER, homeOwnerDashboardUrl);
+        dashboardUrls.put(Role.ADMIN, adminDashboardUrl);
+        dashboardUrls.put(Role.OPERATIONS, operationsDashboardUrl);
+        dashboardUrls.put(Role.FINANCE, financeDashboardUrl);
+        dashboardUrls.put(Role.SUPPORT, supportDashboardUrl);
+    }
 
     public AuthService(UserRepository userRepository,
                        TokenRepository tokenRepository,
@@ -38,7 +94,8 @@ public class AuthService {
                        JwtService jwtService,
                        AuthenticationManager authenticationManager,
                        EmailService emailService,
-                       RedisTemplate<String, Object> redisTemplate) {
+                       RedisTemplate<String, Object> redisTemplate,
+                       ResourceLoader resourceLoader) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -46,6 +103,7 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
         this.emailService = emailService;
         this.redisTemplate = redisTemplate;
+        this.resourceLoader = resourceLoader;
     }
 
     public AuthResponse signup(SignupRequest request) {
@@ -63,19 +121,41 @@ public class AuthService {
         user.setAddress1(request.getAddress1());
         user.setAddress2(request.getAddress2());
         user.setCountry(request.getCountry());
-        user.setLanguage(Language.valueOf(request.getLanguage().toUpperCase()));
+        
+        // Fix Language handling
+        try {
+            Language language = Language.valueOf(request.getLanguage().toUpperCase());
+            user.setLanguage(language);
+        } catch (IllegalArgumentException e) {
+            user.setLanguage(Language.ENGLISH);
+        }
+        
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole() != null ? request.getRole() : Role.CLIENT);
         user.setVerified(false);
+        user.setActive(true);
 
         user = userRepository.save(user);
 
         String activationToken = generateToken(user, TokenType.ACTIVATION);
-        emailService.queueEmail(
-                user.getEmail(),
-                "Activate Your Premisave Account",
-                buildActivationEmail(activationToken)
-        );
+        String activationLink = backendUrl + "/auth/verify/" + activationToken;
+        
+        try {
+            String emailContent = readEmailTemplate(activationEmailPath)
+                    .replace("[activationLink]", activationLink);
+            emailService.queueEmail(
+                    user.getEmail(),
+                    "Activate Your Premisave Account",
+                    emailContent
+            );
+        } catch (IOException e) {
+            // Fallback to simple email if template fails
+            emailService.queueEmail(
+                    user.getEmail(),
+                    "Activate Your Premisave Account",
+                    buildActivationEmail(activationToken)
+            );
+        }
 
         AuthResponse response = new AuthResponse();
         response.setToken(jwtService.generateToken(user));
@@ -92,15 +172,19 @@ public class AuthService {
         User user = (User) authentication.getPrincipal();
 
         if (!user.isVerified()) {
-            throw new RuntimeException("Account not verified");
+            throw new RuntimeException("Account not verified. Please check your email.");
+        }
+
+        if (!user.isActive()) {
+            throw new RuntimeException("Account is deactivated. Please contact support.");
         }
 
         // Update last login timestamp
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
 
-        // Optional: cache user in Redis
-        redisTemplate.opsForValue().set("user:" + user.getEmail(), user);
+        // Cache user in Redis
+        redisTemplate.opsForValue().set("user:" + user.getId(), user);
 
         AuthResponse response = new AuthResponse();
         response.setToken(jwtService.generateToken(user));
@@ -134,11 +218,23 @@ public class AuthService {
         }
 
         String activationToken = generateToken(user, TokenType.ACTIVATION);
-        emailService.queueEmail(
-                email,
-                "Activate Your Premisave Account",
-                buildActivationEmail(activationToken)
-        );
+        String activationLink = backendUrl + "/auth/verify/" + activationToken;
+        
+        try {
+            String emailContent = readEmailTemplate(activationEmailPath)
+                    .replace("[activationLink]", activationLink);
+            emailService.queueEmail(
+                    email,
+                    "Activate Your Premisave Account",
+                    emailContent
+            );
+        } catch (IOException e) {
+            emailService.queueEmail(
+                    email,
+                    "Activate Your Premisave Account",
+                    buildActivationEmail(activationToken)
+            );
+        }
     }
 
     public void resetPassword(ResetPasswordRequest request) {
@@ -146,11 +242,23 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         String resetToken = generateToken(user, TokenType.RESET_PASSWORD);
-        emailService.queueEmail(
-                user.getEmail(),
-                "Reset Your Premisave Password",
-                buildResetEmail(resetToken)
-        );
+        String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
+        
+        try {
+            String emailContent = readEmailTemplate(resetPasswordEmailPath)
+                    .replace("[resetLink]", resetLink);
+            emailService.queueEmail(
+                    user.getEmail(),
+                    "Reset Your Premisave Password",
+                    emailContent
+            );
+        } catch (IOException e) {
+            emailService.queueEmail(
+                    user.getEmail(),
+                    "Reset Your Premisave Password",
+                    buildResetEmail(resetToken)
+            );
+        }
     }
 
     public void changePassword(ChangePasswordRequest request) {
@@ -167,6 +275,9 @@ public class AuthService {
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+        
+        // Clear cached user
+        redisTemplate.delete("user:" + user.getId());
     }
 
     private String generateToken(User user, TokenType type) {
@@ -184,7 +295,7 @@ public class AuthService {
     }
 
     private String buildActivationEmail(String token) {
-        String link = "http://localhost:8080/auth/verify/" + token;
+        String link = backendUrl + "/auth/verify/" + token;
         return "<html>" +
                 "<body>" +
                 "<h2>Welcome to Premisave!</h2>" +
@@ -197,7 +308,7 @@ public class AuthService {
     }
 
     private String buildResetEmail(String token) {
-        String link = "http://localhost:3000/reset-password?token=" + token; // Adjust to your frontend URL
+        String link = frontendUrl + "/reset-password?token=" + token;
         return "<html>" +
                 "<body>" +
                 "<h2>Password Reset Request</h2>" +
@@ -210,13 +321,13 @@ public class AuthService {
     }
 
     private String getDashboardUrl(Role role) {
-        return switch (role) {
-            case CLIENT -> "/dashboard/client";
-            case HOME_OWNER -> "/dashboard/home-owner";
-            case ADMIN -> "/dashboard/admin";
-            case OPERATIONS -> "/dashboard/operations";
-            case FINANCE -> "/dashboard/finance";
-            case SUPPORT -> "/dashboard/support";
-        };
+        return dashboardUrls.getOrDefault(role, frontendUrl + "/dashboard");
+    }
+
+    private String readEmailTemplate(String templatePath) throws IOException {
+        Resource resource = resourceLoader.getResource("classpath:" + templatePath);
+        try (Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
+            return FileCopyUtils.copyToString(reader);
+        }
     }
 }

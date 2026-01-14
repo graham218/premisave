@@ -31,10 +31,10 @@ public class SignupRequest {
 
     private String country;
 
-    private String language = "English";
+    private String language = "ENGLISH";
 
     @NotBlank
     private String password;
 
-    private Role role = Role.CLIENT; // Default to CLIENT
+    private Role role = Role.CLIENT;
 }
