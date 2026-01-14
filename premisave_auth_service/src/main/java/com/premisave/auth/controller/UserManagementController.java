@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin/users")
@@ -18,6 +19,12 @@ public class UserManagementController {
 
     public UserManagementController(UserManagementService userManagementService) {
         this.userManagementService = userManagementService;
+    }
+
+
+    @GetMapping
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        return ResponseEntity.ok(userManagementService.getAllUsers());
     }
 
     @PostMapping("/create")

@@ -50,10 +50,10 @@ public class AuthService {
     @Value("${backend.url:http://localhost:8080}")
     private String backendUrl;
 
-    @Value("${email.activation.path:/templates/activation-email.html}")
+    @Value("${email.activation.path:templates/activation-email.html}")
     private String activationEmailPath;
 
-    @Value("${email.reset-password.path:/templates/reset-password-email.html}")
+    @Value("${email.reset-password.path:templates/reset-password-email.html}")
     private String resetPasswordEmailPath;
 
     // Dashboard URLs from properties
@@ -141,27 +141,16 @@ public class AuthService {
         String activationToken = generateToken(user, TokenType.ACTIVATION);
         String activationLink = backendUrl + "/auth/verify/" + activationToken;
         
-        try {
-            String emailContent = readEmailTemplate(activationEmailPath)
-                    .replace("[activationLink]", activationLink);
-            
-            // Use RabbitMQ to queue the email
-            emailService.queueEmail(
-                    user.getEmail(),
-                    "Activate Your Premisave Account",
-                    emailContent
-            );
-            System.out.println("DEBUG: Email queued for: " + user.getEmail());
-            
-        } catch (IOException e) {
-            // Fallback to simple email if template fails
-            emailService.queueEmail(
-                    user.getEmail(),
-                    "Activate Your Premisave Account",
-                    buildActivationEmail(activationToken)
-            );
-            System.out.println("DEBUG: Using fallback email template for: " + user.getEmail());
-        }
+        String emailContent = readEmailTemplate(activationEmailPath)
+                .replace("[activationLink]", activationLink);
+        
+        // Use RabbitMQ to queue the email
+        emailService.queueEmail(
+                user.getEmail(),
+                "Activate Your Premisave Account",
+                emailContent
+        );
+        System.out.println("DEBUG: Email queued for: " + user.getEmail());
 
         AuthResponse response = new AuthResponse();
         response.setToken(jwtService.generateToken(user));
@@ -226,21 +215,13 @@ public class AuthService {
         String activationToken = generateToken(user, TokenType.ACTIVATION);
         String activationLink = backendUrl + "/auth/verify/" + activationToken;
         
-        try {
-            String emailContent = readEmailTemplate(activationEmailPath)
-                    .replace("[activationLink]", activationLink);
-            emailService.queueEmail(
-                    email,
-                    "Activate Your Premisave Account",
-                    emailContent
-            );
-        } catch (IOException e) {
-            emailService.queueEmail(
-                    email,
-                    "Activate Your Premisave Account",
-                    buildActivationEmail(activationToken)
-            );
-        }
+        String emailContent = readEmailTemplate(activationEmailPath)
+                .replace("[activationLink]", activationLink);
+        emailService.queueEmail(
+                email,
+                "Activate Your Premisave Account",
+                emailContent
+        );
     }
 
     public void resetPassword(ResetPasswordRequest request) {
@@ -250,21 +231,13 @@ public class AuthService {
         String resetToken = generateToken(user, TokenType.RESET_PASSWORD);
         String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
         
-        try {
-            String emailContent = readEmailTemplate(resetPasswordEmailPath)
-                    .replace("[resetLink]", resetLink);
-            emailService.queueEmail(
-                    user.getEmail(),
-                    "Reset Your Premisave Password",
-                    emailContent
-            );
-        } catch (IOException e) {
-            emailService.queueEmail(
-                    user.getEmail(),
-                    "Reset Your Premisave Password",
-                    buildResetEmail(resetToken)
-            );
-        }
+        String emailContent = readEmailTemplate(resetPasswordEmailPath)
+                .replace("[resetLink]", resetLink);
+        emailService.queueEmail(
+                user.getEmail(),
+                "Reset Your Premisave Password",
+                emailContent
+        );
     }
 
     public void changePassword(ChangePasswordRequest request) {
@@ -301,43 +274,32 @@ public class AuthService {
         return tokenValue;
     }
 
-    private String buildActivationEmail(String token) {
-        String link = backendUrl + "/auth/verify/" + token;
-        return "<html>" +
-                "<body>" +
-                "<h2>Welcome to Premisave!</h2>" +
-                "<p>Please click the link below to activate your account:</p>" +
-                "<a href='" + link + "' style='padding:10px 20px; background:#007bff; color:white; text-decoration:none; border-radius:5px;'>Activate Account</a>" +
-                "<p>Or copy and paste this link: " + link + "</p>" +
-                "<p>This link expires in 24 hours.</p>" +
-                "</body>" +
-                "</html>";
-    }
-
-    private String buildResetEmail(String token) {
-        String link = frontendUrl + "/reset-password?token=" + token;
-        return "<html>" +
-                "<body>" +
-                "<h2>Password Reset Request</h2>" +
-                "<p>Click the link below to reset your password:</p>" +
-                "<a href='" + link + "' style='padding:10px 20px; background:#dc3545; color:white; text-decoration:none; border-radius:5px;'>Reset Password</a>" +
-                "<p>Or copy and paste this link: " + link + "</p>" +
-                "<p>This link expires in 24 hours.</p>" +
-                "</body>" +
-                "</html>";
-    }
-
     private String getDashboardUrl(Role role) {
         return dashboardUrls.getOrDefault(role, frontendUrl + "/dashboard");
     }
 
-    private String readEmailTemplate(String templatePath) throws IOException {
+    private String readEmailTemplate(String templatePath) {
+        // Try with classpath prefix first
         Resource resource = resourceLoader.getResource("classpath:" + templatePath);
+        
+        // If not found, try without the prefix (in case it's already included)
         if (!resource.exists()) {
-            throw new IOException("Email template not found: " + templatePath);
+            resource = resourceLoader.getResource("classpath:/" + templatePath);
         }
+        
+        // If still not found, try as a file resource
+        if (!resource.exists()) {
+            resource = resourceLoader.getResource("file:src/main/resources/" + templatePath);
+        }
+        
+        if (!resource.exists()) {
+            throw new RuntimeException("Email template not found at any location: " + templatePath);
+        }
+        
         try (Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
             return FileCopyUtils.copyToString(reader);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read email template: " + templatePath, e);
         }
     }
 }

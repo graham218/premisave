@@ -20,6 +20,13 @@ public class UserManagementService {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
     }
+    
+    public List<UserDto> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        return users.stream()
+            .map(user -> modelMapper.map(user, UserDto.class))
+            .collect(Collectors.toList());
+    }
 
     public UserDto createUser(UserDto userDto) {
         if (userRepository.findByEmail(userDto.getEmail()).isPresent()) {

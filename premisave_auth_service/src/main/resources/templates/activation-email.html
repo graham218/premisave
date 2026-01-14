@@ -1,9 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activate Your Account</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: #f5f7fa; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; }
+        .card { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); text-align: center; border: 1px solid #eaeaea; }
+        .logo { color: #2a8f5e; font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        .tagline { color: #6c757d; font-size: 14px; margin-bottom: 30px; }
+        .welcome { font-size: 24px; color: #2c3e50; margin-bottom: 20px; font-weight: 600; }
+        .message { color: #5a6c7d; line-height: 1.6; margin-bottom: 30px; font-size: 15px; }
+        .btn { display: inline-block; background: #2a8f5e; color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; transition: all 0.3s; box-shadow: 0 4px 12px rgba(42,143,94,0.2); }
+        .btn:hover { background: #1d6e44; box-shadow: 0 6px 16px rgba(42,143,94,0.3); }
+        .link-box { margin: 30px 0; padding: 18px; background: #f8f9fa; border-radius: 8px; font-size: 14px; color: #495057; word-break: break-all; border: 1px solid #e9ecef; }
+        .link-box a { color: #2a8f5e; text-decoration: none; }
+        .features { display: flex; justify-content: space-around; margin: 30px 0; }
+        .feature { text-align: center; color: #4a5568; font-size: 13px; }
+        .feature div:first-child { font-size: 20px; margin-bottom: 8px; }
+        .note { color: #6c757d; font-size: 13px; margin-top: 25px; padding-top: 20px; border-top: 1px solid #eaeaea; }
+        .footer { margin-top: 30px; font-size: 12px; color: #adb5bd; }
+    </style>
+</head>
 <body>
-<h1>Activate Your Premisave Account</h1>
-<p>Click the link below to activate your account:</p>
-<a href="[activationLink]">Activate Account</a>
-<p>If the link doesn't work, copy and paste: [activationLink]</p>
+    <div class="container">
+        <div class="card">
+            <div class="logo">Premisave</div>
+            <div class="tagline">Smart Property Management</div>
+            <h1 class="welcome">Welcome to Premisave</h1>
+            <p class="message">Thank you for choosing Premisave! Activate your account to begin managing properties efficiently.</p>
+            <div class="features">
+                <div class="feature"><div>Property</div><div>Management</div></div>
+                <div class="feature"><div>Financial</div><div>Tracking</div></div>
+                <div class="feature"><div>Analytics</div><div>Dashboard</div></div>
+            </div>
+            <a href="[activationLink]" class="btn">Activate Account</a>
+            <div class="link-box">
+                Or copy this link:<br>
+                <a href="[activationLink]">[activationLink]</a>
+            </div>
+            <div class="note">This activation link expires in 24 hours.</div>
+            <div class="footer">
+                Need help? Contact support@premisave.com<br>
+                © 2024 Premisave. All rights reserved.
+            </div>
+        </div>
+    </div>
 </body>
 </html>
