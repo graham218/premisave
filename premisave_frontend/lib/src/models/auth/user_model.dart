@@ -64,4 +64,40 @@ class UserModel {
       active: json['active'] ?? true,
     );
   }
+
+  UserModel copyWith({
+    String? id,
+    String? username,
+    String? firstName,
+    String? middleName,
+    String? lastName,
+    String? email,
+    String? phoneNumber,
+    String? address1,
+    String? address2,
+    String? country,
+    String? language,
+    String? profilePictureUrl,
+    Role? role,
+    bool? verified,
+    bool? active,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      firstName: firstName ?? this.firstName,
+      middleName: middleName ?? this.middleName,
+      lastName: lastName ?? this.lastName,
+      email: email ?? this.email,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      address1: address1 ?? this.address1,
+      address2: address2 ?? this.address2,
+      country: country ?? this.country,
+      language: language ?? this.language,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
+      role: role ?? this.role,
+      verified: verified ?? this.verified,
+      active: active ?? this.active,
+    );
+  }
 }

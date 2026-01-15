@@ -20,7 +20,6 @@ class AuthState {
   final UserModel? currentUser;
   final bool isLoading;
   final String? error;
-  final List<UserModel> searchedUsers;
   final String? redirectUrl;
   final bool shouldRedirectToLogin;
 
@@ -30,7 +29,6 @@ class AuthState {
     this.currentUser,
     this.isLoading = false,
     this.error,
-    this.searchedUsers = const [],
     this.redirectUrl,
     this.shouldRedirectToLogin = false,
   });
@@ -41,7 +39,6 @@ class AuthState {
     UserModel? currentUser,
     bool? isLoading,
     String? error,
-    List<UserModel>? searchedUsers,
     String? redirectUrl,
     bool? shouldRedirectToLogin,
   }) {
@@ -51,7 +48,6 @@ class AuthState {
       currentUser: currentUser ?? this.currentUser,
       isLoading: isLoading ?? this.isLoading,
       error: error,
-      searchedUsers: searchedUsers ?? this.searchedUsers,
       redirectUrl: redirectUrl ?? this.redirectUrl,
       shouldRedirectToLogin: shouldRedirectToLogin ?? this.shouldRedirectToLogin,
     );
@@ -82,10 +78,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final response = await _dio.post('/auth/signup', data: data);
       final authRes = AuthResponse.fromJson(response.data);
 
-      // Don't save token/role for signup - user needs to login
       ToastUtils.showSuccessToast('Account created successfully! Please check your email to verify your account.');
 
-      // Set flag to redirect to login page
       state = state.copyWith(
         isLoading: false,
         shouldRedirectToLogin: true,
@@ -148,24 +142,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       switch (statusCode) {
-        case 400:
-          return 'Invalid request. Please check your information.';
-        case 401:
-          return 'Invalid email or password. Please try again.';
-        case 403:
-          return 'Access denied. Please contact support.';
-        case 404:
-          return 'Service not found. Please try again later.';
-        case 409:
-          return 'Account already exists with this email.';
-        case 422:
-          return 'Validation failed. Please check all fields.';
-        case 500:
-          return 'Server error. Please try again later.';
-        case 503:
-          return 'Service temporarily unavailable. Please try again later.';
-        default:
-          return 'Something went wrong. Please try again.';
+        case 400: return 'Invalid request. Please check your information.';
+        case 401: return 'Invalid email or password. Please try again.';
+        case 403: return 'Access denied. Please contact support.';
+        case 404: return 'Service not found. Please try again later.';
+        case 409: return 'Account already exists with this email.';
+        case 422: return 'Validation failed. Please check all fields.';
+        case 500: return 'Server error. Please try again later.';
+        case 503: return 'Service temporarily unavailable. Please try again later.';
+        default: return 'Something went wrong. Please try again.';
       }
     }
 
@@ -417,59 +402,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> searchUsers(String query) async {
-    state = state.copyWith(isLoading: true);
-    try {
-      final response = await _dio.post(
-        '/admin/users/search',
-        data: {'query': query},
-        options: Options(headers: {'Authorization': 'Bearer ${state.token}'}),
-      );
-
-      final List<UserModel> users = (response.data as List)
-          .map((json) => UserModel.fromJson(json))
-          .toList();
-
-      state = state.copyWith(searchedUsers: users, isLoading: false);
-    } catch (e) {
-      String errorMessage = 'Failed to search users. Please try again.';
-
-      if (e is DioException) {
-        errorMessage = _getUserFriendlyErrorMessage(e);
-      }
-
-      ToastUtils.showErrorToast(errorMessage);
-      state = state.copyWith(error: errorMessage, isLoading: false);
-    }
-  }
-
-  Future<void> adminAction(String action, String userId) async {
-    state = state.copyWith(isLoading: true);
-    try {
-      await _dio.put(
-        '/admin/users/$action/$userId',
-        options: Options(headers: {'Authorization': 'Bearer ${state.token}'}),
-      );
-
-      String actionMessage = action == 'activate' ? 'User activated' :
-      action == 'deactivate' ? 'User deactivated' :
-      action == 'delete' ? 'User deleted' : 'Action completed';
-
-      ToastUtils.showSuccessToast('$actionMessage successfully!');
-      state = state.copyWith(isLoading: false);
-      await searchUsers(''); // Refresh list
-    } catch (e) {
-      String errorMessage = 'Failed to perform action. Please try again.';
-
-      if (e is DioException) {
-        errorMessage = _getUserFriendlyErrorMessage(e);
-      }
-
-      ToastUtils.showErrorToast(errorMessage);
-      state = state.copyWith(error: errorMessage, isLoading: false);
-    }
-  }
-
   Future<void> confirmLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -495,20 +427,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   String getDashboardRoute() {
     switch (state.role?.toUpperCase()) {
-      case 'CLIENT':
-        return '/dashboard/client';
-      case 'HOME_OWNER':
-        return '/dashboard/home-owner';
-      case 'ADMIN':
-        return '/dashboard/admin';
-      case 'OPERATIONS':
-        return '/dashboard/operations';
-      case 'FINANCE':
-        return '/dashboard/finance';
-      case 'SUPPORT':
-        return '/dashboard/support';
-      default:
-        return '/dashboard/client';
+      case 'CLIENT': return '/dashboard/client';
+      case 'HOME_OWNER': return '/dashboard/home-owner';
+      case 'ADMIN': return '/dashboard/admin';
+      case 'OPERATIONS': return '/dashboard/operations';
+      case 'FINANCE': return '/dashboard/finance';
+      case 'SUPPORT': return '/dashboard/support';
+      default: return '/dashboard/client';
     }
   }
 }
