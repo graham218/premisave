@@ -10,6 +10,7 @@ import '../config/app_config.dart';
 import '../models/auth_response.dart';
 import '../models/user_model.dart';
 import '../services/secure_storage.dart';
+import '../utils/toast_service.dart';
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
 
@@ -56,14 +57,32 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final Dio _dio = Dio(BaseOptions(baseUrl: AppConfig.baseUrl));
 
-  // Correct way for google_sign_in ^7.1.1 - scopes in constructor
+  // Add interceptors for better error handling
+  AuthNotifier() : super(AuthState()) {
+    // Add request/response interceptors
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        // You can modify requests here
+        return handler.next(options);
+      },
+      onError: (DioException e, handler) async {
+        // Handle errors globally
+        String userFriendlyMessage = _getUserFriendlyErrorMessage(e);
+
+        // Update state with error
+        state = state.copyWith(error: userFriendlyMessage, isLoading: false);
+
+        // Don't rethrow, just return the error
+        return handler.next(e);
+      },
+    ));
+
+    _checkAuthStatus();
+  }
+
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
   );
-
-  AuthNotifier() : super(AuthState()) {
-    _checkAuthStatus();
-  }
 
   Future<void> _checkAuthStatus() async {
     final token = await SecureStorage.getToken();
@@ -73,13 +92,63 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> signUp(Map<String, dynamic> data) async {
+  String _getUserFriendlyErrorMessage(DioException e) {
+    if (e.response != null) {
+      final statusCode = e.response!.statusCode;
+      final data = e.response!.data;
+
+      // Check for specific error messages from backend
+      if (data is Map<String, dynamic>) {
+        final message = data['message']?.toString();
+        if (message != null && message.isNotEmpty) {
+          return message;
+        }
+      }
+
+      // Generic messages based on status code
+      switch (statusCode) {
+        case 400:
+          return 'Invalid request. Please check your information.';
+        case 401:
+          return 'Invalid email or password. Please try again.';
+        case 403:
+          return 'Access denied. Please contact support.';
+        case 404:
+          return 'Service not found. Please try again later.';
+        case 409:
+          return 'Account already exists with this email.';
+        case 422:
+          return 'Validation failed. Please check all fields.';
+        case 500:
+          return 'Server error. Please try again later.';
+        case 503:
+          return 'Service temporarily unavailable. Please try again later.';
+        default:
+          return 'Something went wrong. Please try again.';
+      }
+    }
+
+    // Network errors
+    if (e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout) {
+      return 'Network error. Please check your connection.';
+    }
+
+    return 'An unexpected error occurred. Please try again.';
+  }
+
+  Future<void> signUp(Map<String, dynamic> data, {BuildContext? context}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final response = await _dio.post('/auth/signup', data: data);
       final authRes = AuthResponse.fromJson(response.data);
       await SecureStorage.saveToken(authRes.token);
       await SecureStorage.saveRole(authRes.role);
+
+      ToastService.showSuccess('Account created successfully!');
+
       state = state.copyWith(
         token: authRes.token,
         role: authRes.role,
@@ -87,17 +156,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      String errorMessage = 'Failed to create account. Please try again.';
+
+      if (e is DioException) {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+      }
+
+      ToastService.showError(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
     }
   }
 
-  Future<void> signIn(String email, String password) async {
+  Future<void> signIn(String email, String password, {BuildContext? context}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final response = await _dio.post('/auth/signin', data: {'email': email, 'password': password});
       final authRes = AuthResponse.fromJson(response.data);
       await SecureStorage.saveToken(authRes.token);
       await SecureStorage.saveRole(authRes.role);
+
+      ToastService.showSuccess('Welcome back!');
+
       state = state.copyWith(
         token: authRes.token,
         role: authRes.role,
@@ -105,27 +184,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      String errorMessage = 'Login failed. Please try again.';
+
+      if (e is DioException) {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+
+        // Special handling for login errors
+        if (e.response?.statusCode == 401) {
+          errorMessage = 'Invalid email or password. Please try again.';
+        }
+      }
+
+      ToastService.showError(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
     }
   }
 
   Future<void> googleSignIn(BuildContext context) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      // signIn() is available on the instance
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
-        // User cancelled the sign-in
         state = state.copyWith(isLoading: false);
         return;
       }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
       final String? idToken = googleAuth.idToken;
 
       if (idToken == null) {
+        ToastService.showError('Failed to get Google credentials');
         state = state.copyWith(isLoading: false, error: 'Failed to get ID token');
         return;
       }
@@ -136,6 +225,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await SecureStorage.saveToken(authRes.token);
       await SecureStorage.saveRole(authRes.role);
 
+      ToastService.showSuccess('Signed in with Google successfully!');
+
       state = state.copyWith(
         token: authRes.token,
         role: authRes.role,
@@ -143,7 +234,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      String errorMessage = 'Google sign-in failed. Please try again.';
+
+      if (e is DioException) {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+      }
+
+      ToastService.showError(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
     }
   }
 
@@ -165,6 +263,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await SecureStorage.saveToken(authRes.token);
       await SecureStorage.saveRole(authRes.role);
 
+      ToastService.showSuccess('Signed in with Facebook successfully!');
+
       state = state.copyWith(
         token: authRes.token,
         role: authRes.role,
@@ -172,7 +272,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      String errorMessage = 'Facebook sign-in failed. Please try again.';
+
+      if (e is DioException) {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+      }
+
+      ToastService.showError(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
     }
   }
 
@@ -189,6 +296,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final String? idToken = credential.identityToken;
 
       if (idToken == null) {
+        ToastService.showError('Apple sign-in failed. Please try again.');
         state = state.copyWith(isLoading: false, error: 'Apple ID token is null');
         return;
       }
@@ -199,6 +307,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await SecureStorage.saveToken(authRes.token);
       await SecureStorage.saveRole(authRes.role);
 
+      ToastService.showSuccess('Signed in with Apple successfully!');
+
       state = state.copyWith(
         token: authRes.token,
         role: authRes.role,
@@ -206,22 +316,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      String errorMessage = 'Apple sign-in failed. Please try again.';
+
+      if (e is DioException) {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+      }
+
+      ToastService.showError(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
     }
   }
 
-  Future<void> forgotPassword(String email) async {
+  Future<void> forgotPassword(String email, {BuildContext? context}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       await _dio.post('/auth/reset-password', data: {'email': email});
+      ToastService.showSuccess('Password reset link sent to your email!', context: context);
       state = state.copyWith(isLoading: false);
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      String errorMessage = 'Failed to send reset email. Please try again.';
+
+      if (e is DioException) {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+
+        // If email not found
+        if (e.response?.statusCode == 404) {
+          errorMessage = 'No account found with this email address.';
+        }
+      }
+
+      ToastService.showError(errorMessage, context: context);
+      state = state.copyWith(error: errorMessage, isLoading: false);
     }
   }
 
-  Future<void> changePassword(String oldPassword, String newPassword, String confirmPassword) async {
+  Future<void> changePassword(String oldPassword, String newPassword, String confirmPassword, {BuildContext? context}) async {
     if (newPassword != confirmPassword) {
+      ToastService.showError('New passwords do not match');
       state = state.copyWith(error: 'New passwords do not match');
       return;
     }
@@ -237,13 +368,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
         },
         options: Options(headers: {'Authorization': 'Bearer ${state.token}'}),
       );
+
+      ToastService.showSuccess('Password changed successfully!', context: context);
       state = state.copyWith(isLoading: false);
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      String errorMessage = 'Failed to change password. Please try again.';
+
+      if (e is DioException) {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+
+        // Wrong old password
+        if (e.response?.statusCode == 401) {
+          errorMessage = 'Current password is incorrect.';
+        }
+      }
+
+      ToastService.showError(errorMessage, context: context);
+      state = state.copyWith(error: errorMessage, isLoading: false);
     }
   }
 
-  Future<void> updateProfile(Map<String, dynamic> data) async {
+  Future<void> updateProfile(Map<String, dynamic> data, {BuildContext? context}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       await _dio.put(
@@ -251,13 +396,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
         data: data,
         options: Options(headers: {'Authorization': 'Bearer ${state.token}'}),
       );
+
+      ToastService.showSuccess('Profile updated successfully!', context: context);
       state = state.copyWith(isLoading: false);
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      String errorMessage = 'Failed to update profile. Please try again.';
+
+      if (e is DioException) {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+      }
+
+      ToastService.showError(errorMessage, context: context);
+      state = state.copyWith(error: errorMessage, isLoading: false);
     }
   }
 
-  Future<String> uploadProfilePicture(XFile image) async {
+  Future<String> uploadProfilePicture(XFile image, {BuildContext? context}) async {
     state = state.copyWith(isLoading: true);
     try {
       final formData = FormData.fromMap({
@@ -270,15 +424,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
         options: Options(headers: {'Authorization': 'Bearer ${state.token}'}),
       );
 
+      ToastService.showSuccess('Profile picture updated!', context: context);
       state = state.copyWith(isLoading: false);
       return response.data as String;
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      String errorMessage = 'Failed to upload image. Please try again.';
+
+      if (e is DioException) {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+      }
+
+      ToastService.showError(errorMessage, context: context);
+      state = state.copyWith(error: errorMessage, isLoading: false);
       rethrow;
     }
   }
 
-  Future<void> searchUsers(String query) async {
+  Future<void> searchUsers(String query, {BuildContext? context}) async {
     state = state.copyWith(isLoading: true);
     try {
       final response = await _dio.post(
@@ -293,21 +455,41 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = state.copyWith(searchedUsers: users, isLoading: false);
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      String errorMessage = 'Failed to search users. Please try again.';
+
+      if (e is DioException) {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+      }
+
+      ToastService.showError(errorMessage, context: context);
+      state = state.copyWith(error: errorMessage, isLoading: false);
     }
   }
 
-  Future<void> adminAction(String action, String userId) async {
+  Future<void> adminAction(String action, String userId, {BuildContext? context}) async {
     state = state.copyWith(isLoading: true);
     try {
       await _dio.put(
         '/admin/users/$action/$userId',
         options: Options(headers: {'Authorization': 'Bearer ${state.token}'}),
       );
+
+      String actionMessage = action == 'activate' ? 'User activated' :
+      action == 'deactivate' ? 'User deactivated' :
+      action == 'delete' ? 'User deleted' : 'Action completed';
+
+      ToastService.showSuccess('$actionMessage successfully!', context: context);
       state = state.copyWith(isLoading: false);
       await searchUsers(''); // Refresh list
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      String errorMessage = 'Failed to perform action. Please try again.';
+
+      if (e is DioException) {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+      }
+
+      ToastService.showError(errorMessage, context: context);
+      state = state.copyWith(error: errorMessage, isLoading: false);
     }
   }
 
@@ -327,6 +509,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (confirmed == true) {
       await SecureStorage.clear();
       state = AuthState();
+      ToastService.showInfo('Logged out successfully');
       if (context.mounted) {
         context.go('/login');
       }
