@@ -11,7 +11,7 @@ import '../screens/dashboard/home-owner/home_owner_dashboard.dart';
 import '../screens/dashboard/operartions/operations_dashboard.dart';
 import '../screens/dashboard/support/support_dashboard.dart';
 import '../screens/profile/profile_screen.dart';
-import '../screens/admin/user_management_screen.dart';
+import '../screens/dashboard/admin/contents/user_management_screen.dart';
 import '../screens/splash_screen.dart';
 
 final GoRouter router = GoRouter(
