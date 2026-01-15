@@ -1,28 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../providers/auth_provider.dart';
+import '../../../providers/auth_provider.dart';
 
-class AdminDashboard extends ConsumerWidget {
-  const AdminDashboard({super.key});
+class ClientDashboard extends ConsumerWidget {
+  const ClientDashboard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authNotifier = ref.read(authProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin Dashboard')),
+      appBar: AppBar(title: const Text('Client Dashboard')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Welcome, Admin!', style: TextStyle(fontSize: 24)),
+            const Text('Welcome, Client!', style: TextStyle(fontSize: 24)),
             const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: () => context.go('/admin/users'),
-              child: const Text('Manage Users'),
-            ),
-            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => context.go('/profile'),
               child: const Text('View Profile'),
