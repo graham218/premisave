@@ -15,6 +15,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -169,32 +170,47 @@ public class AuthService {
     }
 
     public AuthResponse signin(AuthRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
 
-        User user = (User) authentication.getPrincipal();
+            User user = (User) authentication.getPrincipal();
 
-        if (!user.isVerified()) {
-            throw new RuntimeException("Account not verified. Please check your email.");
+            if (!user.isVerified()) {
+                throw new RuntimeException("Account not verified. Please check your email.");
+            }
+
+            if (!user.isActive()) {
+                throw new RuntimeException("Account is deactivated. Please contact support.");
+            }
+
+            // Update last login timestamp
+            user.setLastLoginAt(LocalDateTime.now());
+            userRepository.save(user);
+
+            // Cache user in Redis
+            redisTemplate.opsForValue().set("user:" + user.getId(), user);
+
+            AuthResponse response = new AuthResponse();
+            response.setToken(jwtService.generateToken(user));
+            response.setRole(user.getRole().name());
+            response.setRedirectUrl(getDashboardUrl(user.getRole()));
+            return response;
+            
+        } catch (BadCredentialsException e) {
+            // Check if the email exists in the system
+            boolean emailExists = userRepository.findByEmail(request.getEmail()).isPresent();
+            
+            if (emailExists) {
+                throw new RuntimeException("Incorrect password. Please try again.");
+            } else {
+                throw new RuntimeException("No account found with this email. Please sign up first.");
+            }
+        } catch (Exception e) {
+            // Re-throw other exceptions as they are
+            throw e;
         }
-
-        if (!user.isActive()) {
-            throw new RuntimeException("Account is deactivated. Please contact support.");
-        }
-
-        // Update last login timestamp
-        user.setLastLoginAt(LocalDateTime.now());
-        userRepository.save(user);
-
-        // Cache user in Redis
-        redisTemplate.opsForValue().set("user:" + user.getId(), user);
-
-        AuthResponse response = new AuthResponse();
-        response.setToken(jwtService.generateToken(user));
-        response.setRole(user.getRole().name());
-        response.setRedirectUrl(getDashboardUrl(user.getRole()));
-        return response;
     }
 
     public void verifyAccount(String tokenStr) {
@@ -240,7 +256,7 @@ public class AuthService {
 
     public void resetPassword(ResetPasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("No account found with this email"));
 
         String resetToken = generateToken(user, TokenType.RESET_PASSWORD);
         String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
