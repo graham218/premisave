@@ -6,11 +6,11 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:image_picker/image_picker.dart';
-import '../config/app_config.dart';
-import '../models/auth_response.dart';
-import '../models/user_model.dart';
-import '../services/secure_storage.dart';
-import '../utils/toast_utils.dart';
+import '../../config/app_config.dart';
+import '../../models/auth/auth_response.dart';
+import '../../models/auth/user_model.dart';
+import '../../services/secure_storage.dart';
+import '../../utils/toast_utils.dart';
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
 
