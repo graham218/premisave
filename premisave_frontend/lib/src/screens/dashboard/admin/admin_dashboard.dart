@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../providers/auth/auth_provider.dart';
-import 'contents/about_content.dart';
-import 'contents/contact_content.dart';
+import '../../public/about_content.dart';
+import '../../public/contact_content.dart';
 import 'contents/admin_dashboard_content.dart';
 import 'contents/admin_user_management_content.dart';
 
