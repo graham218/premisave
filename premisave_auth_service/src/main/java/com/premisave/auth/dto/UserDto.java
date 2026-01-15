@@ -22,4 +22,5 @@ public class UserDto {
     private boolean active;
     private boolean verified;
     private boolean archived;
+    private String password;
 }
