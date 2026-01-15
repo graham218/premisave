@@ -7,11 +7,11 @@ import lombok.Data;
 @Data
 public class UserDto {
     private String id;
-    private String username;
+    private String username;           // Actual username
     private String firstName;
     private String middleName;
     private String lastName;
-    private String email;
+    private String email;              // Email for authentication
     private String phoneNumber;
     private String address1;
     private String address2;
@@ -22,5 +22,5 @@ public class UserDto {
     private boolean active;
     private boolean verified;
     private boolean archived;
-    private String password;
+    private String password;           // Only for updates
 }
