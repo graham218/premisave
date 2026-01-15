@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../models/auth/user_model.dart';
@@ -8,7 +9,6 @@ import 'widgets/user-management/create_user_dialog.dart';
 import 'widgets/user-management/delete_confirmation_dialog.dart';
 import 'widgets/user-management/edit_user_dialog.dart';
 import 'widgets/user-management/user_details_dialog.dart';
-
 
 class AdminUserManagementContent extends ConsumerStatefulWidget {
   const AdminUserManagementContent({super.key});
@@ -23,12 +23,41 @@ class _AdminUserManagementContentState extends ConsumerState<AdminUserManagement
   bool? selectedActiveFilter;
   bool? selectedVerifiedFilter;
 
+  // Timer for debouncing search
+  Timer? _searchDebounceTimer;
+  final Duration _searchDebounceDelay = const Duration(milliseconds: 500);
+
   @override
   void initState() {
     super.initState();
     // Load users when widget initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(userManagementProvider.notifier).refreshUsers();
+    });
+  }
+
+  @override
+  void dispose() {
+    // Cancel any pending timer
+    _searchDebounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchTextChanged(String value) {
+    // Cancel previous timer if it exists
+    if (_searchDebounceTimer != null && _searchDebounceTimer!.isActive) {
+      _searchDebounceTimer!.cancel();
+    }
+
+    // Start a new timer
+    _searchDebounceTimer = Timer(_searchDebounceDelay, () {
+      if (value.isEmpty) {
+        // If search is empty, refresh to show all users
+        ref.read(userManagementProvider.notifier).refreshUsers();
+      } else {
+        // Perform search with the current text
+        ref.read(userManagementProvider.notifier).searchUsers(value);
+      }
     });
   }
 
@@ -69,30 +98,66 @@ class _AdminUserManagementContentState extends ConsumerState<AdminUserManagement
                           filled: true,
                           fillColor: Colors.grey[50],
                           prefixIcon: const Icon(Icons.search),
+                          suffixIcon: searchController.text.isNotEmpty
+                              ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              searchController.clear();
+                              ref.read(userManagementProvider.notifier).refreshUsers();
+                            },
+                          )
+                              : null,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         ),
+                        onChanged: _onSearchTextChanged,
                         onSubmitted: (value) {
-                          userManagementNotifier.searchUsers(value);
+                          // Cancel any pending debounce timer
+                          _searchDebounceTimer?.cancel();
+                          if (value.isEmpty) {
+                            ref.read(userManagementProvider.notifier).refreshUsers();
+                          } else {
+                            ref.read(userManagementProvider.notifier).searchUsers(value);
+                          }
                         },
                       ),
                     ),
                     const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () => userManagementNotifier.searchUsers(searchController.text),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0D47A1),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    Tooltip(
+                      message: 'Search',
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _searchDebounceTimer?.cancel();
+                          ref.read(userManagementProvider.notifier).searchUsers(searchController.text);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0D47A1),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
+                        child: const Text('Search', style: TextStyle(color: Colors.white)),
                       ),
-                      child: const Text('Search', style: TextStyle(color: Colors.white)),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () => userManagementNotifier.refreshUsers(),
-                      icon: const Icon(Icons.refresh),
-                      tooltip: 'Refresh',
+                    Tooltip(
+                      message: 'Refresh',
+                      child: IconButton(
+                        onPressed: () {
+                          // Clear search and refresh
+                          searchController.clear();
+                          ref.read(userManagementProvider.notifier).refreshUsers();
+                          // Clear filters
+                          setState(() {
+                            selectedRoleFilter = null;
+                            selectedActiveFilter = null;
+                            selectedVerifiedFilter = null;
+                          });
+                          userManagementNotifier.filterByStatus(null, null);
+                          userManagementNotifier.filterByRole(null);
+                        },
+                        icon: const Icon(Icons.refresh),
+                      ),
                     ),
                   ],
                 ),
@@ -232,27 +297,27 @@ class _AdminUserManagementContentState extends ConsumerState<AdminUserManagement
               ),
             ),
 
-          // User List or Empty State
-          Expanded(
-            child: userManagementState.filteredUsers.isEmpty
-                ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+          // Search Status Indicator
+          if (searchController.text.isNotEmpty && !userManagementState.isLoading)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.blue[50],
+              child: Row(
                 children: [
-                  Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
+                  const Icon(Icons.search, size: 16, color: Colors.blue),
+                  const SizedBox(width: 8),
                   Text(
-                    'No users found',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Try adjusting your search or filters',
-                    style: TextStyle(color: Colors.grey),
+                    'Searching for "${searchController.text}" • ${userManagementState.filteredUsers.length} results',
+                    style: const TextStyle(color: Colors.blue, fontSize: 12),
                   ),
                 ],
               ),
-            )
+            ),
+
+          // User List or Empty State
+          Expanded(
+            child: userManagementState.filteredUsers.isEmpty
+                ? _buildEmptyState(userManagementState, searchController.text)
                 : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: userManagementState.filteredUsers.length,
@@ -488,6 +553,68 @@ class _AdminUserManagementContentState extends ConsumerState<AdminUserManagement
               label: const Text('Add User'),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(UserManagementState state, String searchQuery) {
+    if (state.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (searchQuery.isNotEmpty)
+            Column(
+              children: [
+                const Icon(Icons.search_off, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  'No users found for "$searchQuery"',
+                  style: const TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Try a different search term',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
+            )
+          else
+            Column(
+              children: [
+                const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                const Text(
+                  'No users found',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Try adjusting your search or filters',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => CreateUserDialog(
+                        onCreate: (userData) async {
+                          await ref.read(userManagementProvider.notifier).createUser(userData);
+                        },
+                      ),
+                    );
+                  },
+                  child: const Text('Add First User'),
+                ),
+              ],
+            ),
         ],
       ),
     );
