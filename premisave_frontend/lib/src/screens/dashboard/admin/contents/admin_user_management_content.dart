@@ -27,7 +27,7 @@ class _AdminUserManagementContentState extends ConsumerState<AdminUserManagement
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -88,8 +88,8 @@ class _AdminUserManagementContentState extends ConsumerState<AdminUserManagement
                       leading: Container(
                         width: 50,
                         height: 50,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
                             colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,

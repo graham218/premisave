@@ -11,7 +11,6 @@ import '../screens/dashboard/home-owner/home_owner_dashboard.dart';
 import '../screens/dashboard/operartions/operations_dashboard.dart';
 import '../screens/dashboard/support/support_dashboard.dart';
 import '../screens/profile/profile_screen.dart';
-import '../screens/dashboard/admin/contents/user_management_screen.dart';
 import '../screens/splash_screen.dart';
 
 final GoRouter router = GoRouter(
@@ -30,6 +29,5 @@ final GoRouter router = GoRouter(
     GoRoute(path: '/dashboard/finance', builder: (_, __) => const FinanceDashboard()),
     GoRoute(path: '/dashboard/support', builder: (_, __) => const SupportDashboard()),
     GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
-    GoRoute(path: '/admin/users', builder: (_, __) => const UserManagementScreen()),
   ],
 );

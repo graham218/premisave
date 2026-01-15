@@ -95,7 +95,7 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF004799).withOpacity(0.6),
+            color: const Color(0xFF004799).withValues(alpha: 0.6),
             blurRadius: 25,
             offset: const Offset(0, 8),
             spreadRadius: 2,
@@ -151,8 +151,8 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Colors.white.withOpacity(0.3),
-                      Colors.white.withOpacity(0.1),
+                      Colors.white.withValues(alpha: 0.3),
+                      Colors.white.withValues(alpha: 0.1),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -160,7 +160,7 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       blurRadius: 15,
                       spreadRadius: 2,
                     ),
@@ -193,17 +193,17 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            color.withOpacity(0.3),
-            color.withOpacity(0.15),
+            color.withValues(alpha: 0.3),
+            color.withValues(alpha: 0.15),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.4), width: 1.5),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -361,7 +361,7 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          shadowColor: color.withOpacity(0.3),
+          shadowColor: color.withValues(alpha: 0.3),
           child: Container(
             constraints: BoxConstraints(
               minHeight: isSmallScreen ? 80 : 100,
@@ -371,7 +371,7 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
               gradient: LinearGradient(
                 colors: [
                   Colors.white,
-                  color.withOpacity(0.05),
+                  color.withValues(alpha: 0.05),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -390,8 +390,8 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              color.withOpacity(0.2),
-                              color.withOpacity(0.1),
+                              color.withValues(alpha: 0.2),
+                              color.withValues(alpha: 0.1),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -399,7 +399,7 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: color.withOpacity(0.2),
+                              color: color.withValues(alpha: 0.2),
                               blurRadius: 8,
                               offset: const Offset(0, 3),
                             ),
@@ -538,12 +538,12 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          shadowColor: color.withOpacity(0.4),
+          shadowColor: color.withValues(alpha: 0.4),
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(16),
-            hoverColor: color.withOpacity(0.1),
-            splashColor: color.withOpacity(0.2),
+            hoverColor: color.withValues(alpha: 0.1),
+            splashColor: color.withValues(alpha: 0.2),
             child: Container(
               constraints: BoxConstraints(
                 minHeight: isSmallScreen ? 80 : 100,
@@ -552,8 +552,8 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
                 borderRadius: BorderRadius.circular(16),
                 gradient: LinearGradient(
                   colors: [
-                    color.withOpacity(0.08),
-                    color.withOpacity(0.02),
+                    color.withValues(alpha: 0.08),
+                    color.withValues(alpha: 0.02),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -568,8 +568,8 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          color.withOpacity(0.2),
-                          color.withOpacity(0.1),
+                          color.withValues(alpha: 0.2),
+                          color.withValues(alpha: 0.1),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -577,7 +577,7 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: color.withOpacity(0.3),
+                          color: color.withValues(alpha: 0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -626,14 +626,14 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          shadowColor: Colors.blue.withOpacity(0.2),
+          shadowColor: Colors.blue.withValues(alpha: 0.2),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               gradient: LinearGradient(
                 colors: [
                   Colors.white,
-                  Colors.blue.withOpacity(0.02),
+                  Colors.blue.withValues(alpha: 0.02),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -740,14 +740,14 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          shadowColor: Colors.blue.withOpacity(0.2),
+          shadowColor: Colors.blue.withValues(alpha: 0.2),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               gradient: LinearGradient(
                 colors: [
                   Colors.white,
-                  Colors.blue.withOpacity(0.02),
+                  Colors.blue.withValues(alpha: 0.02),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -793,8 +793,8 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                activity['color'].withOpacity(0.2),
-                activity['color'].withOpacity(0.1),
+                activity['color'].withValues(alpha: 0.2),
+                activity['color'].withValues(alpha: 0.1),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -802,7 +802,7 @@ class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: activity['color'].withOpacity(0.2),
+                color: activity['color'].withValues(alpha: 0.2),
                 blurRadius: 6,
                 offset: const Offset(0, 3),
               ),

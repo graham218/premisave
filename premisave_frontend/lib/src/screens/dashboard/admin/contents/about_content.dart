@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class AdminAboutContent extends StatefulWidget {
-  const AdminAboutContent({super.key});
+class AboutContent extends StatefulWidget {
+  const AboutContent({super.key});
 
   @override
-  State<AdminAboutContent> createState() => _AdminAboutContentState();
+  State<AboutContent> createState() => _AdminAboutContentState();
 }
 
-class _AdminAboutContentState extends State<AdminAboutContent> with SingleTickerProviderStateMixin {
+class _AdminAboutContentState extends State<AboutContent> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override

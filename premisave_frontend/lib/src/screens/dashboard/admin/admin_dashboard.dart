@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../providers/auth/auth_provider.dart';
-import 'contents/admin_about_content.dart';
-import 'contents/admin_contact_content.dart';
+import 'contents/about_content.dart';
+import 'contents/contact_content.dart';
 import 'contents/admin_dashboard_content.dart';
 import 'contents/admin_user_management_content.dart';
 
@@ -49,9 +49,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
       case '/admin/users':
         return const AdminUserManagementContent();
       case '/admin/contact':
-        return const AdminContactContent();
+        return const ContactContent();
       case '/admin/about':
-        return const AdminAboutContent();
+        return const AboutContent();
       case '/dashboard/admin':
       default:
         return const AdminDashboardContent();
