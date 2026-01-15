@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'src/services/notification_service.dart';
 import 'src/app.dart';
+
+// Add this global key
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 Future<void> _backgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -19,9 +21,6 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_backgroundHandler);
   await NotificationService.initialize();
-
-  // Initialize toast (optional but good practice)
-  Fluttertoast.cancel(); // Clear any existing toasts
 
   runApp(const ProviderScope(child: PremisaveApp()));
 }

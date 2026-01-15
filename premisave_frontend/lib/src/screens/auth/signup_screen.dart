@@ -12,7 +12,17 @@ class SignupScreen extends ConsumerWidget {
     final authNotifier = ref.read(authProvider.notifier);
     final isLargeScreen = MediaQuery.of(context).size.width > 700;
 
+    // Listen for successful signup to redirect to login
     ref.listen<AuthState>(authProvider, (previous, next) {
+      // Redirect to login after successful signup
+      if (next.shouldRedirectToLogin && !next.isLoading) {
+        // Small delay to show the success toast first
+        Future.delayed(const Duration(milliseconds: 500), () {
+          context.go('/login');
+        });
+      }
+
+      // Handle successful login redirect (keep existing logic)
       if (next.token != null && next.redirectUrl != null && !next.isLoading) {
         context.go(next.redirectUrl!);
       }
@@ -270,7 +280,7 @@ class _SignupFormLayoutState extends State<_SignupFormLayout> {
         'language': controllers['language']!.text,
         'password': controllers['password']!.text,
       };
-      widget.authNotifier.signUp(data, context: context);
+      widget.authNotifier.signUp(data);
     }
   }
 

@@ -38,7 +38,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       authNotifier.signIn(
         _emailController.text.trim(),
         _passwordController.text,
-        context: context,
       );
     }
   }
@@ -50,6 +49,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isLargeScreen = MediaQuery.of(context).size.width > 700;
 
     ref.listen<AuthState>(authProvider, (previous, next) {
+      // Only handle login redirects (signup redirects are handled in signup screen)
       if (next.token != null && next.redirectUrl != null && !next.isLoading) {
         context.go(next.redirectUrl!);
       }

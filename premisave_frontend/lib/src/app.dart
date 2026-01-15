@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../main.dart';
 import 'config/routes.dart';
 import 'theme/app_theme.dart';
 
@@ -13,6 +14,7 @@ class PremisaveApp extends StatelessWidget {
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: scaffoldMessengerKey,
       routerConfig: router,
     );
   }
