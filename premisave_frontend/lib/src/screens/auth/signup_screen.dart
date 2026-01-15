@@ -270,7 +270,7 @@ class _SignupFormLayoutState extends State<_SignupFormLayout> {
         'language': controllers['language']!.text,
         'password': controllers['password']!.text,
       };
-      widget.authNotifier.signUp(data);
+      widget.authNotifier.signUp(data, context: context);
     }
   }
 

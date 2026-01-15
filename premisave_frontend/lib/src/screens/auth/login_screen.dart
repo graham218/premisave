@@ -38,6 +38,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       authNotifier.signIn(
         _emailController.text.trim(),
         _passwordController.text,
+        context: context,
       );
     }
   }
