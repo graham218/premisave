@@ -277,7 +277,7 @@ public class AuthService {
         }
 
         String activationToken = generateToken(user, TokenType.ACTIVATION);
-        String activationLink = backendUrl + "/auth/verify/" + activationToken;
+        String activationLink = frontendUrl + "/verify/" + activationToken;
         
         // Prepare template data
         Map<String, String> templateData = new HashMap<>();
