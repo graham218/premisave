@@ -22,6 +22,7 @@ class AuthState {
   final String? error;
   final String? redirectUrl;
   final bool shouldRedirectToLogin;
+  final DateTime? tokenExpiry;
 
   AuthState({
     this.token,
@@ -31,6 +32,7 @@ class AuthState {
     this.error,
     this.redirectUrl,
     this.shouldRedirectToLogin = false,
+    this.tokenExpiry,
   });
 
   AuthState copyWith({
@@ -41,6 +43,7 @@ class AuthState {
     String? error,
     String? redirectUrl,
     bool? shouldRedirectToLogin,
+    DateTime? tokenExpiry,
   }) {
     return AuthState(
       token: token ?? this.token,
@@ -50,6 +53,7 @@ class AuthState {
       error: error,
       redirectUrl: redirectUrl ?? this.redirectUrl,
       shouldRedirectToLogin: shouldRedirectToLogin ?? this.shouldRedirectToLogin,
+      tokenExpiry: tokenExpiry ?? this.tokenExpiry,
     );
   }
 }
@@ -67,10 +71,56 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> _checkAuthStatus() async {
     final token = await SecureStorage.getToken();
     final role = await SecureStorage.getRole();
+    final expiry = await SecureStorage.getTokenExpiry();
+
     if (token != null && role != null) {
-      state = state.copyWith(token: token, role: role);
-      await loadCurrentUser();
+      // Check if token needs refresh (within 7 days of expiry)
+      if (await SecureStorage.shouldRefreshToken()) {
+        await _refreshToken();
+      } else {
+        state = state.copyWith(
+            token: token,
+            role: role,
+            tokenExpiry: expiry
+        );
+        await loadCurrentUser();
+      }
     }
+  }
+
+  Future<void> _refreshToken() async {
+    final oldToken = await SecureStorage.getToken();
+    if (oldToken == null) return;
+
+    try {
+      state = state.copyWith(isLoading: true);
+      final response = await _dio.post(
+        '/auth/refresh',
+        options: Options(headers: {'Authorization': 'Bearer $oldToken'}),
+      );
+
+      final newToken = response.data['token'] as String;
+      await SecureStorage.saveToken(newToken);
+
+      final expiry = await SecureStorage.getTokenExpiry();
+      state = state.copyWith(
+        token: newToken,
+        tokenExpiry: expiry,
+        isLoading: false,
+      );
+
+      await loadCurrentUser();
+    } catch (e) {
+      print('Token refresh failed: $e');
+      // If refresh fails, clear token and logout
+      await _logoutSilently();
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  Future<void> _logoutSilently() async {
+    await SecureStorage.clear();
+    state = AuthState();
   }
 
   Future<void> loadCurrentUser() async {
@@ -121,10 +171,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signIn(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final response = await _dio.post('/auth/signin', data: {'email': email, 'password': password});
+      final response = await _dio.post('/auth/signin', data: {
+        'email': email,
+        'password': password,
+        'rememberMe': true, // Tell backend to issue long-lived token
+      });
       final authRes = AuthResponse.fromJson(response.data);
+
+      // Save with 30-day expiry
       await SecureStorage.saveToken(authRes.token);
       await SecureStorage.saveRole(authRes.role);
+
+      final expiry = await SecureStorage.getTokenExpiry();
 
       ToastUtils.showSuccessToast('Welcome back!');
 
@@ -132,6 +190,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         token: authRes.token,
         role: authRes.role,
         redirectUrl: authRes.redirectUrl,
+        tokenExpiry: expiry,
         isLoading: false,
         shouldRedirectToLogin: false,
       );
@@ -213,12 +272,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await SecureStorage.saveToken(authRes.token);
       await SecureStorage.saveRole(authRes.role);
 
+      final expiry = await SecureStorage.getTokenExpiry();
+
       ToastUtils.showSuccessToast('Signed in with Google successfully!');
 
       state = state.copyWith(
         token: authRes.token,
         role: authRes.role,
         redirectUrl: authRes.redirectUrl,
+        tokenExpiry: expiry,
         isLoading: false,
       );
 
@@ -253,12 +315,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await SecureStorage.saveToken(authRes.token);
       await SecureStorage.saveRole(authRes.role);
 
+      final expiry = await SecureStorage.getTokenExpiry();
+
       ToastUtils.showSuccessToast('Signed in with Facebook successfully!');
 
       state = state.copyWith(
         token: authRes.token,
         role: authRes.role,
         redirectUrl: authRes.redirectUrl,
+        tokenExpiry: expiry,
         isLoading: false,
       );
 
@@ -299,12 +364,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await SecureStorage.saveToken(authRes.token);
       await SecureStorage.saveRole(authRes.role);
 
+      final expiry = await SecureStorage.getTokenExpiry();
+
       ToastUtils.showSuccessToast('Signed in with Apple successfully!');
 
       state = state.copyWith(
         token: authRes.token,
         role: authRes.role,
         redirectUrl: authRes.redirectUrl,
+        tokenExpiry: expiry,
         isLoading: false,
       );
 
@@ -471,5 +539,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       case 'SUPPORT': return '/dashboard/support';
       default: return '/dashboard/client';
     }
+  }
+
+  // Public method to check token status
+  bool isTokenExpired() {
+    if (state.tokenExpiry == null) return true;
+    return DateTime.now().isAfter(state.tokenExpiry!);
+  }
+
+  // Public method to manually refresh token if needed
+  Future<void> refreshToken() async {
+    await _refreshToken();
   }
 }
