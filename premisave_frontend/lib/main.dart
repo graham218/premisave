@@ -2,12 +2,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'firebase_options.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-import 'src/services/notification_service.dart';
+import 'firebase_options.dart';
 import 'src/app.dart';
+import 'src/providers/auth/auth_provider.dart';
+import 'src/services/notification_service.dart';
 
-// Add this global key
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 Future<void> _backgroundHandler(RemoteMessage message) async {
@@ -15,12 +15,24 @@ Future<void> _backgroundHandler(RemoteMessage message) async {
   NotificationService.showNotification(message);
 }
 
-void main() async {
+Future<void> main() async {
   usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_backgroundHandler);
   await NotificationService.initialize();
 
-  runApp(const ProviderScope(child: PremisaveApp()));
+  // Create provider container
+  final container = ProviderContainer();
+
+  // Check and restore auth status before running app
+  await container.read(authProvider.notifier).checkAuthStatus();
+
+  runApp(
+    UncontrolledProviderScope(
+      container: container,
+      child: PremisaveApp(scaffoldMessengerKey: scaffoldMessengerKey),
+    ),
+  );
 }

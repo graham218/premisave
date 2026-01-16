@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
 import 'config/routes.dart';
 import 'theme/app_theme.dart';
 
 class PremisaveApp extends StatelessWidget {
-  const PremisaveApp({super.key});
+  const PremisaveApp({
+    super.key,
+    required this.scaffoldMessengerKey,
+  });
+
+  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
 
   @override
   Widget build(BuildContext context) {

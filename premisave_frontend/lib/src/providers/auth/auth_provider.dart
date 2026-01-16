@@ -65,26 +65,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
   );
 
   AuthNotifier() : super(AuthState()) {
-    _checkAuthStatus();
+    checkAuthStatus();
   }
 
-  Future<void> _checkAuthStatus() async {
-    final token = await SecureStorage.getToken();
-    final role = await SecureStorage.getRole();
-    final expiry = await SecureStorage.getTokenExpiry();
+  // Public method that can be called from main.dart
+  Future<void> checkAuthStatus() async {
+    try {
+      final token = await SecureStorage.getToken();
+      final role = await SecureStorage.getRole();
+      final expiry = await SecureStorage.getTokenExpiry();
 
-    if (token != null && role != null) {
-      // Check if token needs refresh (within 7 days of expiry)
-      if (await SecureStorage.shouldRefreshToken()) {
-        await _refreshToken();
-      } else {
-        state = state.copyWith(
-            token: token,
-            role: role,
-            tokenExpiry: expiry
-        );
-        await loadCurrentUser();
+      if (token != null && role != null) {
+        // Check if token needs refresh (within 7 days of expiry)
+        if (await SecureStorage.shouldRefreshToken()) {
+          await _refreshToken();
+        } else {
+          state = state.copyWith(
+              token: token,
+              role: role,
+              tokenExpiry: expiry
+          );
+          await loadCurrentUser();
+        }
       }
+    } catch (e) {
+      print('Error checking auth status: $e');
     }
   }
 
