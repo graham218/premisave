@@ -307,38 +307,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     return ScaleTransition(
       scale: _scaleAnimation,
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(isLargeScreen ? 28 : 20),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [theme.colorScheme.primary, theme.colorScheme.primaryContainer],
-          ),
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
-            BoxShadow(
-              color: theme.colorScheme.primary.withValues(alpha: 0.3),
-              blurRadius: 25,
-              offset: const Offset(0, 10),
-            ),
+            BoxShadow(color: theme.colorScheme.primary.withOpacity(0.08), blurRadius: 24),
           ],
         ),
-        child: Column(
-          children: [
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Column(children: [
             Stack(
               alignment: Alignment.bottomRight,
               children: [
                 Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 4),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 6)),
-                    ],
+                    color: theme.colorScheme.background,
+                    boxShadow: [BoxShadow(color: theme.colorScheme.primary.withOpacity(0.2), blurRadius: 16)],
                   ),
                   child: UserAvatar(
                     imageUrl: _getProfileImageUrl(user),
-                    radius: isLargeScreen ? 70 : 50,
+                    radius: isLargeScreen ? 70 : 56,
                     onTap: _pickImage,
                   ),
                 ),
@@ -347,58 +338,95 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.secondary,
+                      color: theme.colorScheme.primary,
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 3)),
-                      ],
+                      boxShadow: [BoxShadow(color: theme.colorScheme.primary.withOpacity(0.3), blurRadius: 8)],
                     ),
-                    child: const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
+                    child: Icon(Icons.edit_rounded, color: theme.colorScheme.onPrimary, size: 18),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: Column(
-                children: [
-                  Text(
-                    '${user.firstName} ${user.lastName}',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  if (user.username.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text('@${user.username}', style: TextStyle(color: Colors.white.withValues(alpha: 0.8))),
-                  ],
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.email_rounded, color: Colors.white.withValues(alpha: 0.8), size: 16),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(user.email, style: TextStyle(color: Colors.white.withValues(alpha: 0.9)), overflow: TextOverflow.ellipsis),
-                      ),
-                    ],
-                  ),
-                  if (user.phoneNumber.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.phone_rounded, color: Colors.white.withValues(alpha: 0.8), size: 14),
-                        const SizedBox(width: 6),
-                        Text(user.phoneNumber, style: TextStyle(color: Colors.white.withValues(alpha: 0.9))),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
+            Text(
+              '${user.firstName} ${user.lastName}',
+              style: TextStyle(fontSize: isLargeScreen ? 24 : 20, fontWeight: FontWeight.w700, color: theme.colorScheme.onSurface),
+              textAlign: TextAlign.center,
             ),
-          ],
+            if (user.username.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text('@${user.username}', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w500)),
+            ],
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(children: [
+                _buildContactRow(Icons.email_rounded, user.email, theme, true),
+                if (user.phoneNumber.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildContactRow(Icons.phone_rounded, user.phoneNumber, theme, false),
+                ],
+              ]),
+            ),
+          ]),
         ),
       ),
+    );
+  }
+
+  Widget _buildContactRow(IconData icon, String text, ThemeData theme, bool primary) {
+    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Icon(icon, size: 18, color: primary ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
+      const SizedBox(width: 10),
+      Flexible(child: Text(text, style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: primary ? FontWeight.w500 : FontWeight.w400))),
+    ]);
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required ThemeData theme,
+    bool isPrimary = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: isPrimary
+                ? theme.colorScheme.primary.withOpacity(0.1)
+                : theme.colorScheme.surfaceVariant,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: isPrimary
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: isPrimary
+                  ? theme.colorScheme.onSurface
+                  : theme.colorScheme.onSurfaceVariant,
+              fontWeight: isPrimary ? FontWeight.w500 : FontWeight.w400,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
