@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:premisave_flutter/src/models/auth/user_model.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../providers/auth/auth_provider.dart';
-import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import 'widgets/profile_completion_bar.dart';
 import 'widgets/user_avatar.dart';

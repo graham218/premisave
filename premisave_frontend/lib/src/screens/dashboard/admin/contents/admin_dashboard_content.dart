@@ -1,413 +1,715 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-
+import '../../../../models/auth/user_model.dart';
 import '../../../../providers/auth/auth_provider.dart';
-import '../../../public/about_content.dart';
-import '../../../public/contact_content.dart';
-import 'admin_user_management_content.dart';
-
 
 class AdminDashboardContent extends ConsumerStatefulWidget {
   const AdminDashboardContent({super.key});
 
   @override
-  ConsumerState<AdminDashboardContent> createState() => _AdminDashboardState();
+  ConsumerState<AdminDashboardContent> createState() => _AdminDashboardContentState();
 }
 
-class _AdminDashboardState extends ConsumerState<AdminDashboardContent> {
-  int _selectedIndex = 0;
-  bool _isSidebarOpen = false;
-  String _currentRoute = '/dashboard/admin';
+class _AdminDashboardContentState extends ConsumerState<AdminDashboardContent>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _slideAnimation;
 
-  final List<Map<String, dynamic>> _menuItems = [
-    {'icon': Icons.dashboard, 'label': 'Dashboard', 'route': '/dashboard/admin'},
-    {'icon': Icons.people, 'label': 'Manage Users', 'route': '/admin/users'},
-    {'icon': Icons.bar_chart, 'label': 'Analytics', 'route': '/admin/analytics'},
-    {'icon': Icons.settings, 'label': 'Settings', 'route': '/admin/settings'},
-    {'icon': Icons.report, 'label': 'Reports', 'route': '/admin/reports'},
-    {'icon': Icons.notifications, 'label': 'Notifications', 'route': '/admin/notifications'},
-    {'icon': Icons.history, 'label': 'Audit Log', 'route': '/admin/audit'},
-    {'icon': Icons.contact_support, 'label': 'Contact Us', 'route': '/admin/contact'},
-    {'icon': Icons.info, 'label': 'About Us', 'route': '/admin/about'},
-  ];
+  @override
+  void initState() {
+    super.initState();
 
-  void _navigateToRoute(String route) {
-    setState(() {
-      _currentRoute = route;
-      // Find the index in the visible tabs (first 4 items)
-      final visibleTabs = _menuItems.take(4).toList();
-      _selectedIndex = visibleTabs.indexWhere((item) => item['route'] == route);
-      if (_selectedIndex == -1) {
-        _selectedIndex = 0; // Default to first tab if not found in visible tabs
-      }
-      _isSidebarOpen = false;
-    });
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    _slideAnimation = Tween<double>(begin: 50.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    _animationController.forward();
   }
 
-  Widget _getCurrentContent() {
-    switch (_currentRoute) {
-      case '/admin/users':
-        return const AdminUserManagementContent();
-      case '/admin/contact':
-        return const ContactContent();
-      case '/admin/about':
-        return const AboutContent();
-      case '/dashboard/admin':
-      default:
-        return const AdminDashboardContent();
-    }
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final authNotifier = ref.read(authProvider.notifier);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 700;
+    final authState = ref.watch(authProvider);
 
-    final visibleTabs = _menuItems.take(4).toList();
-    final moreTabs = _menuItems.skip(4).toList();
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _fadeAnimation.value,
+            child: Transform.translate(
+              offset: Offset(0, _slideAnimation.value),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildWelcomeCard(authState.currentUser),
+                  const SizedBox(height: 24),
+                  _buildQuickStatsSection(),
+                  const SizedBox(height: 24),
+                  _buildActionSection(),
+                  const SizedBox(height: 24),
+                  _buildSystemHealthSection(),
+                  const SizedBox(height: 24),
+                  _buildRecentActivitySection(),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-    // Ensure selected index is within bounds for visible tabs
-    final safeSelectedIndex = _selectedIndex.clamp(0, visibleTabs.length - 1);
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        surfaceTintColor: Colors.white,
-        title: Text(
-          _menuItems.firstWhere(
-                (item) => item['route'] == _currentRoute,
-            orElse: () => _menuItems.first,
-          )['label'],
-          style: const TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-          ),
-        ),
-        leading: !isMobile
-            ? IconButton(
-          icon: Icon(
-            _isSidebarOpen ? Icons.close : Icons.menu,
-            color: Colors.black87,
-            size: 24,
-          ),
-          onPressed: () {
-            setState(() {
-              _isSidebarOpen = !_isSidebarOpen;
-            });
-          },
-        )
-            : null,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person, color: Colors.black87, size: 22),
-            onPressed: () => context.go('/profile'),
-            tooltip: 'Profile',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.black87, size: 22),
-            onPressed: () => authNotifier.confirmLogout(context),
-            tooltip: 'Logout',
+  Widget _buildWelcomeCard(UserModel? user) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+            spreadRadius: 1,
           ),
         ],
       ),
-      body: Stack(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Main content
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            margin: EdgeInsets.only(left: _isSidebarOpen && !isMobile ? 260 : 0),
-            child: _getCurrentContent(),
-          ),
-
-          // Sidebar overlay for mobile
-          if (isMobile && _isSidebarOpen)
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isSidebarOpen = false;
-                });
-              },
-              child: Container(
-                color: Colors.black54,
-                width: double.infinity,
-                height: double.infinity,
-              ),
-            ),
-
-          // Sidebar
-          if (!isMobile)
-            _buildDesktopSidebar(),
-          if (isMobile)
-            _buildMobileSidebar(),
-        ],
-      ),
-      bottomNavigationBar: isMobile
-          ? Container(
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(color: Colors.grey.shade200, width: 1),
-          ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: safeSelectedIndex,
-          onTap: (index) {
-            if (index == 4 && moreTabs.isNotEmpty) {
-              _showMoreOptions(context, moreTabs);
-            } else if (index < visibleTabs.length) {
-              final route = visibleTabs[index]['route'];
-              _navigateToRoute(route);
-            }
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: Color(0xFFFF5A5F), // Airbnb pink/red
-          unselectedItemColor: Colors.grey.shade600,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-          showUnselectedLabels: true,
-          items: [
-            ...visibleTabs
-                .map(
-                  (item) => BottomNavigationBarItem(
-                icon: Icon(item['icon']),
-                label: item['label'],
-              ),
-            )
-                .toList(),
-            if (moreTabs.isNotEmpty)
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.more_horiz),
-                label: 'More',
-              ),
-          ],
-        ),
-      )
-          : null,
-    );
-  }
-
-  Widget _buildDesktopSidebar() {
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 300),
-      left: _isSidebarOpen ? 0 : -260,
-      top: 0,
-      bottom: 0,
-      child: _buildSidebarContent(),
-    );
-  }
-
-  Widget _buildMobileSidebar() {
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 300),
-      left: _isSidebarOpen ? 0 : -260,
-      top: 0,
-      bottom: 0,
-      child: _buildSidebarContent(),
-    );
-  }
-
-  Widget _buildSidebarContent() {
-    return Material(
-      elevation: 4,
-      child: Container(
-        width: 260,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            right: BorderSide(color: Color(0xFFEBEBEB), width: 1),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 8,
-              offset: Offset(1, 0),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Header with close button
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey.shade200),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hello, ${user?.firstName ?? 'Admin'} 👋',
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Welcome to Premisave Admin Dashboard',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Admin Menu',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Color(0xFFFF5A5F).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Color(0xFFFF5A5F).withOpacity(0.2), width: 2),
+                ),
+                child: Icon(Icons.admin_panel_settings, color: Color(0xFFFF5A5F), size: 32),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _buildStatusChip('System Active', Icons.check_circle, Color(0xFF00A699)),
+              _buildStatusChip('Users Online', Icons.people, Color(0xFF767676)),
+              _buildStatusChip('All Services Up', Icons.verified, Color(0xFF00A699)),
+              _buildStatusChip('Last Backup: Today', Icons.backup, Color(0xFF914669)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(String text, IconData icon, Color color) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.2), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: Colors.black87,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickStatsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'System Overview',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 600;
+            final isMediumScreen = constraints.maxWidth < 900;
+            final crossAxisCount = isSmallScreen ? 2 : (isMediumScreen ? 3 : 4);
+            final childAspectRatio = isSmallScreen ? 1.3 : (isMediumScreen ? 1.5 : 1.2);
+            final mainAxisSpacing = isSmallScreen ? 12.0 : 16.0;
+
+            return GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: mainAxisSpacing,
+              childAspectRatio: childAspectRatio,
+              children: [
+                _buildResponsiveInfoCard(
+                  Icons.people,
+                  'Total Users',
+                  '1,254',
+                  Color(0xFF00A699),
+                  constraints.maxWidth,
+                ),
+                _buildResponsiveInfoCard(
+                  Icons.home,
+                  'Properties',
+                  '842',
+                  Color(0xFF767676),
+                  constraints.maxWidth,
+                ),
+                _buildResponsiveInfoCard(
+                  Icons.attach_money,
+                  'Revenue Today',
+                  'KES 45,820',
+                  Color(0xFF00A699),
+                  constraints.maxWidth,
+                ),
+                _buildResponsiveInfoCard(
+                  Icons.receipt,
+                  'Pending Transactions',
+                  '24',
+                  Color(0xFFFF5A5F),
+                  constraints.maxWidth,
+                ),
+                if (crossAxisCount > 3) ...[
+                  _buildResponsiveInfoCard(
+                    Icons.support_agent,
+                    'Support Tickets',
+                    '12',
+                    Color(0xFF914669),
+                    constraints.maxWidth,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.black87, size: 22),
-                    onPressed: () {
-                      setState(() {
-                        _isSidebarOpen = false;
-                      });
-                    },
+                  _buildResponsiveInfoCard(
+                    Icons.trending_up,
+                    'Growth Rate',
+                    '+15% this month',
+                    Color(0xFF00A699),
+                    constraints.maxWidth,
+                  ),
+                ] else if (crossAxisCount == 3) ...[
+                  _buildResponsiveInfoCard(
+                    Icons.support_agent,
+                    'Support Tickets',
+                    '12',
+                    Color(0xFF914669),
+                    constraints.maxWidth,
+                  ),
+                  _buildResponsiveInfoCard(
+                    Icons.trending_up,
+                    'Growth Rate',
+                    '+15% this month',
+                    Color(0xFF00A699),
+                    constraints.maxWidth,
+                  ),
+                ] else ...[
+                  _buildResponsiveInfoCard(
+                    Icons.support_agent,
+                    'Support Tickets',
+                    '12',
+                    Color(0xFF914669),
+                    constraints.maxWidth,
+                  ),
+                ]
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResponsiveInfoCard(IconData icon, String title, String value, Color color, double screenWidth) {
+    final isSmallScreen = screenWidth < 600;
+    final padding = isSmallScreen ? 12.0 : 16.0;
+    final iconSize = isSmallScreen ? 16.0 : 18.0;
+    final titleSize = isSmallScreen ? 11.0 : 13.0;
+    final valueSize = isSmallScreen ? 12.0 : 14.0;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: TweenAnimationBuilder(
+        duration: const Duration(milliseconds: 500),
+        tween: Tween<double>(begin: 0, end: 1),
+        builder: (context, double val, child) {
+          return Transform.scale(
+            scale: 1 + (val * 0.05),
+            child: child,
+          );
+        },
+        child: Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
+          child: Container(
+            constraints: BoxConstraints(
+              minHeight: isSmallScreen ? 80 : 100,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(padding),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: color, size: iconSize),
+                      ),
+                      SizedBox(width: isSmallScreen ? 6 : 10),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: titleSize,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isSmallScreen ? 6 : 10),
+                  Flexible(
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: valueSize,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
 
-            // Menu items - takes all available space
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                children: _menuItems.map((item) {
-                  final isSelected = _currentRoute == item['route'];
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+  Widget _buildActionSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Quick Actions',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 600;
+            final isMediumScreen = constraints.maxWidth < 900;
+            final crossAxisCount = isSmallScreen ? 2 : (isMediumScreen ? 3 : 4);
+            final childAspectRatio = isSmallScreen ? 1.1 : (isMediumScreen ? 1.3 : 1.1);
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: isSmallScreen ? 200 : (isMediumScreen ? 180 : 160),
+              ),
+              child: GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: childAspectRatio,
+                children: [
+                  _buildResponsiveActionCard(
+                    'Manage Users',
+                    Icons.people,
+                    Color(0xFF00A699),
+                        () {}, // Empty for now
+                    constraints.maxWidth,
+                  ),
+                  _buildResponsiveActionCard(
+                    'View Reports',
+                    Icons.assessment,
+                    Color(0xFF767676),
+                        () {}, // Empty for now
+                    constraints.maxWidth,
+                  ),
+                  _buildResponsiveActionCard(
+                    'System Settings',
+                    Icons.settings,
+                    Color(0xFF914669),
+                        () {}, // Empty for now
+                    constraints.maxWidth,
+                  ),
+                  _buildResponsiveActionCard(
+                    'View Analytics',
+                    Icons.analytics,
+                    Color(0xFFFF5A5F),
+                        () {}, // Empty for now
+                    constraints.maxWidth,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResponsiveActionCard(String text, IconData icon, Color color, VoidCallback onTap, double screenWidth) {
+    final isSmallScreen = screenWidth < 600;
+    final padding = isSmallScreen ? 12.0 : 16.0;
+    final iconSize = isSmallScreen ? 20.0 : 24.0;
+    final textSize = isSmallScreen ? 11.0 : 13.0;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: TweenAnimationBuilder(
+        duration: const Duration(milliseconds: 600),
+        tween: Tween<double>(begin: 0, end: 1),
+        builder: (context, double val, child) {
+          return Transform.translate(
+            offset: Offset(0, (1 - val) * 20),
+            child: Opacity(
+              opacity: val,
+              child: child,
+            ),
+          );
+        },
+        child: Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            hoverColor: color.withOpacity(0.05),
+            splashColor: color.withOpacity(0.1),
+            child: Container(
+              constraints: BoxConstraints(
+                minHeight: isSmallScreen ? 80 : 100,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+              ),
+              padding: EdgeInsets.all(padding),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: isSelected ? Color(0xFFFF5A5F).withOpacity(0.1) : Colors.transparent,
+                      color: color.withOpacity(0.1),
+                      shape: BoxShape.circle,
                     ),
-                    child: ListTile(
-                      leading: Icon(item['icon'],
-                          color: isSelected ? Color(0xFFFF5A5F) : Colors.grey.shade700,
-                          size: 22
+                    child: Icon(icon, color: color, size: iconSize),
+                  ),
+                  SizedBox(height: isSmallScreen ? 6 : 12),
+                  Flexible(
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: textSize,
+                        fontWeight: FontWeight.w500,
+                        color: color,
                       ),
-                      title: Text(
-                        item['label'],
-                        style: TextStyle(
-                          color: isSelected ? Colors.black87 : Colors.grey.shade700,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSystemHealthSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'System Health',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildHealthIndicator('Database', 95, Color(0xFF00A699)),
+                  const SizedBox(height: 12),
+                  _buildHealthIndicator('API Services', 88, Color(0xFF767676)),
+                  const SizedBox(height: 12),
+                  _buildHealthIndicator('Payment Gateway', 92, Color(0xFF00A699)),
+                  const SizedBox(height: 12),
+                  _buildHealthIndicator('Email Service', 75, Color(0xFFFF5A5F)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHealthIndicator(String service, int percentage, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              service,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+            Text(
+              '$percentage%',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        LinearProgressIndicator(
+          value: percentage / 100,
+          backgroundColor: Colors.grey.shade200,
+          color: color,
+          minHeight: 6,
+          borderRadius: BorderRadius.circular(3),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecentActivitySection() {
+    final activities = [
+      {
+        'type': 'user',
+        'title': 'New User Registered',
+        'description': 'John Doe registered a new account',
+        'time': '2 hours ago',
+        'icon': Icons.person_add,
+        'color': Color(0xFF00A699),
+      },
+      {
+        'type': 'payment',
+        'title': 'Payment Processed',
+        'description': 'KES 15,000 payment for property #123',
+        'time': '3 hours ago',
+        'icon': Icons.payment,
+        'color': Color(0xFF00A699),
+      },
+      {
+        'type': 'system',
+        'title': 'System Backup Completed',
+        'description': 'Daily backup executed successfully',
+        'time': '5 hours ago',
+        'icon': Icons.backup,
+        'color': Color(0xFF914669),
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Recent Activity',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: activities.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final activity = entry.value;
+                  return TweenAnimationBuilder(
+                    duration: Duration(milliseconds: 600 + (index * 200)),
+                    tween: Tween<double>(begin: 0, end: 1),
+                    builder: (context, double val, child) {
+                      return Opacity(
+                        opacity: val,
+                        child: Transform.translate(
+                          offset: Offset((1 - val) * 20, 0),
+                          child: child,
                         ),
-                      ),
-                      trailing: isSelected
-                          ? Icon(Icons.circle, color: Color(0xFFFF5A5F), size: 8)
-                          : Icon(Icons.chevron_right, color: Colors.grey.shade500, size: 18),
-                      onTap: () => _navigateToRoute(item['route']),
-                    ),
+                      );
+                    },
+                    child: _buildAnimatedActivityItem(activity),
                   );
                 }).toList(),
               ),
             ),
-
-            // Footer with info
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Colors.grey.shade200),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.admin_panel_settings, color: Colors.grey.shade600, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Premisave Admin Panel',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  void _showMoreOptions(BuildContext context, List<Map<String, dynamic>> items) {
-    final itemHeight = 56.0;
-    final headerHeight = 120.0;
-    final maxHeight = MediaQuery.of(context).size.height * 0.8;
-    final calculatedHeight = (items.length * itemHeight) + headerHeight;
-    final sheetHeight = calculatedHeight > maxHeight ? maxHeight : calculatedHeight;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        height: sheetHeight,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+  Widget _buildAnimatedActivityItem(Map<String, dynamic> activity) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: activity['color'].withOpacity(0.1),
+            shape: BoxShape.circle,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
+          child: Icon(activity['icon'], color: activity['color'], size: 20),
         ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 8, bottom: 16),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'More Options',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: ListView(
-                  shrinkWrap: true,
-                  physics: const ClampingScrollPhysics(),
-                  children: items.map(
-                        (item) => ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Color(0xFFFF5A5F).withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(item['icon'], color: Color(0xFFFF5A5F)),
-                      ),
-                      title: Text(
-                        item['label'],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      trailing: Icon(Icons.chevron_right, color: Colors.grey.shade500),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _navigateToRoute(item['route']);
-                      },
-                    ),
-                  ).toList(),
-                ),
-              ),
-            ],
+        title: Text(
+          activity['title'],
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        subtitle: Text(
+          activity['description'],
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        trailing: Text(
+          activity['time'],
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade500,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
