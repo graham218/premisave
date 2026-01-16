@@ -160,64 +160,168 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   void _showChangePasswordDialog(BuildContext context) {
+    final oldPasswordCtrl = TextEditingController();
+    final newPasswordCtrl = TextEditingController();
+    final confirmPasswordCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.lock_rounded, color: Theme.of(context).colorScheme.primary, size: 28),
-                  const SizedBox(width: 12),
-                  Text('Change Password', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _buildPasswordField(label: 'Current Password'),
-              const SizedBox(height: 16),
-              _buildPasswordField(label: 'New Password'),
-              const SizedBox(height: 16),
-              _buildPasswordField(label: 'Confirm New Password'),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text('Cancel'),
-                    ),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.lock_rounded, color: Theme.of(context).colorScheme.primary, size: 28),
+                    const SizedBox(width: 12),
+                    Text('Change Password', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: oldPasswordCtrl,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Current Password',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: Icon(Icons.lock_rounded),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text('Update'),
-                    ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Current password is required';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: newPasswordCtrl,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'New Password',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: Icon(Icons.lock_outline_rounded),
                   ),
-                ],
-              ),
-            ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'New password is required';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: confirmPasswordCtrl,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm New Password',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: Icon(Icons.lock_reset_rounded),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm your new password';
+                    }
+                    if (value != newPasswordCtrl.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Consumer(
+                        builder: (context, ref, child) {
+                          final authState = ref.watch(authProvider);
+                          return ElevatedButton(
+                            onPressed: authState.isLoading
+                                ? null
+                                : () async {
+                              if (formKey.currentState?.validate() ?? false) {
+                                await ref
+                                    .read(authProvider.notifier)
+                                    .changePassword(
+                                  oldPasswordCtrl.text.trim(),
+                                  newPasswordCtrl.text.trim(),
+                                  confirmPasswordCtrl.text.trim(),
+                                );
+
+                                // Check if there's no error after password change
+                                final updatedAuthState = ref.read(authProvider);
+                                if (!updatedAuthState.isLoading && updatedAuthState.error == null) {
+                                  // Only close dialog if password change was successful
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Password updated successfully!'),
+                                        backgroundColor: Theme.of(context).colorScheme.primary,
+                                      ),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: authState.isLoading
+                                ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                                : const Text('Update'),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    );
+    ).then((_) {
+      // Clean up controllers when dialog closes
+      oldPasswordCtrl.dispose();
+      newPasswordCtrl.dispose();
+      confirmPasswordCtrl.dispose();
+    });
   }
-
+  
   Widget _buildPasswordField({required String label}) {
     return TextFormField(
       obscureText: true,
@@ -312,7 +416,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
-            BoxShadow(color: theme.colorScheme.primary.withOpacity(0.08), blurRadius: 24),
+            BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.08), blurRadius: 24),
           ],
         ),
         child: FadeTransition(
@@ -325,7 +429,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: theme.colorScheme.background,
-                    boxShadow: [BoxShadow(color: theme.colorScheme.primary.withOpacity(0.2), blurRadius: 16)],
+                    boxShadow: [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.2), blurRadius: 16)],
                   ),
                   child: UserAvatar(
                     imageUrl: _getProfileImageUrl(user),
@@ -340,7 +444,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary,
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: theme.colorScheme.primary.withOpacity(0.3), blurRadius: 8)],
+                      boxShadow: [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.3), blurRadius: 8)],
                     ),
                     child: Icon(Icons.edit_rounded, color: theme.colorScheme.onPrimary, size: 18),
                   ),
@@ -361,7 +465,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(children: [
@@ -400,7 +504,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           height: 36,
           decoration: BoxDecoration(
             color: isPrimary
-                ? theme.colorScheme.primary.withOpacity(0.1)
+                ? theme.colorScheme.primary.withValues(alpha: 0.1)
                 : theme.colorScheme.surfaceVariant,
             shape: BoxShape.circle,
           ),

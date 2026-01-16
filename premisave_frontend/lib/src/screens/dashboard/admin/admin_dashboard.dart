@@ -197,10 +197,10 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         }
       },
       itemBuilder: (BuildContext context) => [
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'profile',
           child: Row(
-            children: const [
+            children: [
               Icon(Icons.person, size: 20, color: Colors.black87),
               SizedBox(width: 8),
               Text('Profile'),
@@ -208,19 +208,44 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
           ),
         ),
       ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: GestureDetector(
-          onTap: () => context.go('/profile'),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.grey.shade300, width: 1.5),
-            ),
-            child: ClipOval(
-              child: _buildProfilePicture(currentUser),
+      child: Tooltip(
+        message: 'Profile',
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A2B4C),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        textStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        margin: const EdgeInsets.only(bottom: 8),
+        preferBelow: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: GestureDetector(
+            onTap: () => context.go('/profile'),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.grey.shade300,
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1A2B4C).withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: _buildProfilePicture(currentUser),
+              ),
             ),
           ),
         ),
