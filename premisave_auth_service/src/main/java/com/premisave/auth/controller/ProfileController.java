@@ -34,9 +34,9 @@ public class ProfileController {
         return ResponseEntity.ok("Profile updated successfully");
     }
 
-    @PostMapping("/upload-pic")
+    @PostMapping("/upload-profile-picture")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<String> uploadProfilePic(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<String> uploadProfilePicture(@RequestParam("file") MultipartFile file) {
         String url = profileService.uploadProfilePic(file);
         return ResponseEntity.ok(url);
     }

@@ -15,7 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @Slf4j
@@ -24,6 +27,20 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final Cloudinary cloudinary;
     private final PasswordEncoder passwordEncoder;
+    
+    // Allowed image content types
+    private static final Set<String> ALLOWED_CONTENT_TYPES = new HashSet<>(Arrays.asList(
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp"
+    ));
+    
+    // Maximum file size in bytes (5MB)
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+    
+    // Cloudinary folder
+    private static final String CLOUDINARY_FOLDER = "premisave/profile-photos";
 
     public ProfileService(UserRepository userRepository, Cloudinary cloudinary, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -95,35 +112,112 @@ public class ProfileService {
     @SuppressWarnings("rawtypes")
     public String uploadProfilePic(MultipartFile file) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String principalName = authentication.getName(); // Email
+        String principalName = authentication.getName();
         
         User user = userRepository.findByEmail(principalName)
             .orElseThrow(() -> new RuntimeException("User not found"));
-            
+        
         try {
-            // Validate file type
-            String contentType = file.getContentType();
-            if (contentType == null || !contentType.startsWith("image/")) {
-                throw new RuntimeException("Only image files are allowed");
+            // Validate file is not empty
+            if (file.isEmpty()) {
+                throw new RuntimeException("Please select a file to upload");
             }
             
-            // Validate file size (5MB max)
-            long maxSize = 5 * 1024 * 1024;
-            if (file.getSize() > maxSize) {
+            // Validate file type
+            String contentType = file.getContentType();
+            if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+                throw new RuntimeException("Only image files are allowed (JPEG, PNG, GIF, WEBP)");
+            }
+            
+            // Validate file size
+            if (file.getSize() > MAX_FILE_SIZE) {
                 throw new RuntimeException("File size must be less than 5MB");
             }
             
+            // Get file extension for validation
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename != null) {
+                String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                if (!Arrays.asList("jpg", "jpeg", "png", "gif", "webp").contains(extension)) {
+                    throw new RuntimeException("Invalid file extension. Allowed: jpg, jpeg, png, gif, webp");
+                }
+            }
+            
+            // Delete old profile picture from Cloudinary if exists
+            deleteOldProfilePicture(user.getProfilePictureUrl());
+            
+            // Generate unique public ID for the new image
+            String publicId = CLOUDINARY_FOLDER + "/user_" + user.getId() + "_" + System.currentTimeMillis();
+            
+            // Upload new profile picture to Cloudinary
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(), 
-                ObjectUtils.asMap("resource_type", "image"));
+                ObjectUtils.asMap(
+                    "resource_type", "image",
+                    "folder", CLOUDINARY_FOLDER,
+                    "public_id", publicId,
+                    "transformation", new com.cloudinary.Transformation()
+                        .width(200).height(200).crop("fill").gravity("face").quality("auto")
+                ));
+            
             String url = (String) uploadResult.get("secure_url");
             user.setProfilePictureUrl(url);
             userRepository.save(user);
             
-            log.info("Profile picture uploaded for user: {}", user.getEmail());
+            log.info("Profile picture uploaded for user: {} to folder: {}", user.getEmail(), CLOUDINARY_FOLDER);
             return url;
+            
         } catch (IOException e) {
             log.error("Failed to upload profile picture for user: {}", user.getEmail(), e);
             throw new RuntimeException("Upload failed: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error uploading profile picture for user: {}", user.getEmail(), e);
+            throw new RuntimeException("Upload failed: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Delete old profile picture from Cloudinary
+     */
+    private void deleteOldProfilePicture(String oldProfilePictureUrl) {
+        try {
+            if (oldProfilePictureUrl != null && !oldProfilePictureUrl.isEmpty()) {
+                // Extract public ID from URL
+                // Cloudinary URL format: https://res.cloudinary.com/cloudname/image/upload/v1234567890/folder/public_id.jpg
+                String[] parts = oldProfilePictureUrl.split("/");
+                if (parts.length > 0) {
+                    String publicIdWithExtension = parts[parts.length - 1];
+                    String publicId = publicIdWithExtension.substring(0, publicIdWithExtension.lastIndexOf("."));
+                    
+                    // If the image is in a folder, reconstruct the full public ID
+                    // Check if this is a Cloudinary URL by looking for 'upload' segment
+                    int uploadIndex = -1;
+                    for (int i = 0; i < parts.length; i++) {
+                        if ("upload".equals(parts[i])) {
+                            uploadIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    if (uploadIndex != -1 && uploadIndex + 2 < parts.length) {
+                        // Get the folder path after 'upload'
+                        StringBuilder folderPath = new StringBuilder();
+                        for (int i = uploadIndex + 1; i < parts.length - 1; i++) {
+                            if (folderPath.length() > 0) {
+                                folderPath.append("/");
+                            }
+                            folderPath.append(parts[i]);
+                        }
+                        publicId = folderPath.toString();
+                    }
+                    
+                    // Delete from Cloudinary
+                    Map result = cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+                    log.info("Deleted old profile picture: {} - Result: {}", publicId, result.get("result"));
+                }
+            }
+        } catch (Exception e) {
+            // Log but don't throw - we don't want to fail the new upload if old delete fails
+            log.warn("Failed to delete old profile picture from URL {}: {}", oldProfilePictureUrl, e.getMessage());
         }
     }
 

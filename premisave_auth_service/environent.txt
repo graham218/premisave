@@ -1,0 +1,37 @@
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:8080
+MONGODB_URI=mongodb://localhost:27017/premisave-auth
+
+GMAIL_USERNAME=thepeacemakerske@gmail.com
+GMAIL_PASSWORD="nyea rbvz wkzp ksaz"
+
+RABBITMQ_HOST=localhost
+RABBITMQ_PORT=5672
+RABBITMQ_USERNAME=guest
+RABBITMQ_PASSWORD=guest
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+CLOUDINARY_CLOUD_NAME=thepeacemakersllc
+CLOUDINARY_API_KEY=929659223288334
+CLOUDINARY_API_SECRET=nAsBdgfXx86u7-Y8X2VnLa-2FbQ
+
+# JWT - Generate a proper 256-bit (32 bytes) base64 encoded secret
+# Use: echo -n 'your-very-secure-jwt-secret-key-32-bytes!' | base64
+JWT_SECRET=eW91ci12ZXJ5LXNlY3VyZS1qd3Qtc2VjcmV0LWtleS0zMi1ieXRlcyE=
+JWT_EXPIRATION=2592000000  # 30 days
+JWT_REFRESH_TOKEN_EXPIRATION=2592000000  # 30 days refresh token
+RATE_LIMIT_REQUESTS_PER_MINUTE=20
+
+GOOGLE_CLIENT_ID=507070007754-kaugebnbqpe9jmq7bf0aisbh5u833crr.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
+
+FACEBOOK_CLIENT_ID=2764873073854843
+FACEBOOK_CLIENT_SECRET=8a6a56832e942f52bac07b7cadcfbf93
+
+APPLE_CLIENT_ID=yourappleclientid
+APPLE_CLIENT_SECRET=yourappleclientsecret
+
+# Add RabbitMQ deserialization trust
+SPRING_AMQP_DESERIALIZATION_TRUST_ALL=true
