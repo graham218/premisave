@@ -57,7 +57,7 @@ class UserModel {
       language: json['language'] ?? 'English',
       profilePictureUrl: json['profilePictureUrl'] ?? '',
       role: Role.values.firstWhere(
-            (r) => r.name.toUpperCase() == (json['role'] ?? 'CLIENT').toUpperCase(),
+            (r) => r.name.toUpperCase() == (json['role'] ?? 'CLIENT').toUpperCase().replaceAll('_', ''),
         orElse: () => Role.client,
       ),
       verified: json['verified'] ?? false,
