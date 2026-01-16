@@ -271,7 +271,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text('Create User'),
+                      child: const Text('Create User', style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),

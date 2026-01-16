@@ -173,7 +173,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
-          child: const Text('Save Changes'),
+          child: const Text('Save Changes', style: TextStyle(color: Colors.white)),
         ),
       ],
     );

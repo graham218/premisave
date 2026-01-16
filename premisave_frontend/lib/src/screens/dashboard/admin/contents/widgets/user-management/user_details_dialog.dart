@@ -166,7 +166,7 @@ class UserDetailsDialog extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
-        child: const Text('Close', style: TextStyle(fontSize: 16)),
+        child: const Text('Close', style: TextStyle(fontSize: 16, color: Colors.white)),
       ),
     );
   }
