@@ -12,9 +12,62 @@ import '../screens/dashboard/operartions/operations_dashboard.dart';
 import '../screens/dashboard/support/support_dashboard.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/splash_screen.dart';
+import '../services/secure_storage.dart';
 
 final GoRouter router = GoRouter(
-  initialLocation: '/', // Changed to root
+  initialLocation: '/',
+  redirect: (context, state) async {
+    // Get auth state from storage directly
+    final token = await SecureStorage.getToken();
+    final role = await SecureStorage.getRole();
+    final isAuthenticated = token != null;
+
+    // Define public routes
+    final publicRoutes = [
+      '/',
+      '/splash',
+      '/login',
+      '/signup',
+      '/forgot-password',
+      '/reset-password',
+      '/verify',
+    ];
+
+    // Use uri.path to get the current path
+    final currentLocation = state.uri.path;
+
+    // If authenticated and trying to access public route
+    if (isAuthenticated && publicRoutes.contains(currentLocation)) {
+      // Redirect to appropriate dashboard
+      switch (role?.toUpperCase()) {
+        case 'CLIENT': return '/dashboard/client';
+        case 'HOME_OWNER': return '/dashboard/home-owner';
+        case 'ADMIN': return '/dashboard/admin';
+        case 'OPERATIONS': return '/dashboard/operations';
+        case 'FINANCE': return '/dashboard/finance';
+        case 'SUPPORT': return '/dashboard/support';
+        default: return '/dashboard/client';
+      }
+    }
+
+    // Define private routes
+    final privateRoutes = [
+      '/dashboard/client',
+      '/dashboard/home-owner',
+      '/dashboard/admin',
+      '/dashboard/operations',
+      '/dashboard/finance',
+      '/dashboard/support',
+      '/profile',
+    ];
+
+    // If not authenticated and trying to access private route
+    if (!isAuthenticated && privateRoutes.contains(currentLocation)) {
+      return '/login';
+    }
+
+    return null;
+  },
   routes: [
     // Root route
     GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
