@@ -1,5 +1,6 @@
 package com.premisave.auth.controller;
 
+import com.premisave.auth.dto.PasswordChangeRequest;
 import com.premisave.auth.dto.ProfileUpdateRequest;
 import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.service.ProfileService;
@@ -30,7 +31,7 @@ public class ProfileController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> updateProfile(@Valid @RequestBody ProfileUpdateRequest request) {
         profileService.updateProfile(request);
-        return ResponseEntity.ok("Profile updated");
+        return ResponseEntity.ok("Profile updated successfully");
     }
 
     @PostMapping("/upload-pic")
@@ -38,5 +39,16 @@ public class ProfileController {
     public ResponseEntity<String> uploadProfilePic(@RequestParam("file") MultipartFile file) {
         String url = profileService.uploadProfilePic(file);
         return ResponseEntity.ok(url);
+    }
+
+    @PostMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<String> changePassword(@Valid @RequestBody PasswordChangeRequest request) {
+        profileService.updatePassword(
+            request.getCurrentPassword(), 
+            request.getNewPassword(), 
+            request.getConfirmPassword()
+        );
+        return ResponseEntity.ok("Password changed successfully");
     }
 }
