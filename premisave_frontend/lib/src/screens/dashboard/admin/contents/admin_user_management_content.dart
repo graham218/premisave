@@ -549,7 +549,7 @@ class _AdminUserManagementContentState extends ConsumerState<AdminUserManagement
                 );
               },
               backgroundColor: const Color(0xFF0D47A1),
-              icon: const Icon(Icons.person_add),
+              icon: const Icon(Icons.person_add, color: Colors.white),
               label: const Text('Add User', style: TextStyle(color: Colors.white)),
             ),
           ),

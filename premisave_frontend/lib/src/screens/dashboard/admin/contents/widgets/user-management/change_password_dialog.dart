@@ -45,15 +45,15 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header
-                Row(
+                const Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.lock_reset,
                       color: Color(0xFF0D47A1),
                       size: 28,
                     ),
-                    const SizedBox(width: 12),
-                    const Text(
+                    SizedBox(width: 12),
+                    Text(
                       'Change Password',
                       style: TextStyle(
                         fontSize: 20,
@@ -106,7 +106,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text('Change Password'),
+                      child: const Text('Change Password', style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
