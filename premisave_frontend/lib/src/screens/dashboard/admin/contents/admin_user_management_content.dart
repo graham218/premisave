@@ -80,9 +80,9 @@ class _AdminUserManagementContentState extends ConsumerState<AdminUserManagement
               ),
             ],
           ),
-          // Floating Action Button - Bottom Left
+          // Floating Action Button - Bottom Right
           Positioned(
-            left: 16,
+            right: 16,
             bottom: 16,
             child: FloatingActionButton.extended(
               onPressed: () => _showCreateUserDialog(context, userManagementNotifier),
@@ -504,7 +504,7 @@ class _AdminUserManagementContentState extends ConsumerState<AdminUserManagement
             : [
           const Icon(Icons.people_outline, size: 64, color: Colors.grey),
           const SizedBox(height: 16),
-          const Text('No users found', style: TextStyle(fontSize: 18, color: Colors.grey)),
+          const Text('No users found', style: const TextStyle(fontSize: 18, color: Colors.grey)),
           const SizedBox(height: 8),
           const Text('Try adjusting your search or filters', style: TextStyle(color: Colors.grey)),
           const SizedBox(height: 16),

@@ -483,13 +483,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true);
     try {
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(image.path),
+        'file': await MultipartFile.fromFile(
+          image.path,
+          filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ),
       });
 
       final response = await _dio.post(
-        '/profile/upload-pic',
+        '/profile/upload-profile-picture', // Updated endpoint
         data: formData,
-        options: Options(headers: {'Authorization': 'Bearer ${state.token}'}),
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer ${state.token}',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
       );
 
       ToastUtils.showSuccessToast('Profile picture updated!');
@@ -503,6 +511,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (e is DioException) {
         errorMessage = _getUserFriendlyErrorMessage(e);
+
+        // Log detailed error for debugging
+        print('Profile picture upload error: ${e.response?.data}');
+        print('Status code: ${e.response?.statusCode}');
+        print('Error message: ${e.message}');
       }
 
       ToastUtils.showErrorToast(errorMessage);
@@ -555,5 +568,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // Public method to manually refresh token if needed
   Future<void> refreshToken() async {
     await _refreshToken();
+  }
+
+  // Debug method to test backend connection
+  Future<void> testProfileUpload() async {
+    try {
+      print('Testing profile picture upload...');
+      final response = await _dio.get(
+        '/profile/me',
+        options: Options(headers: {'Authorization': 'Bearer ${state.token}'}),
+      );
+      print('Profile endpoint accessible: ${response.statusCode}');
+      print('Profile data: ${response.data}');
+    } catch (e) {
+      print('Profile endpoint error: $e');
+      if (e is DioException) {
+        print('Error response: ${e.response?.data}');
+        print('Error status: ${e.response?.statusCode}');
+      }
+    }
+  }
+
+  // Method to verify the upload endpoint is working
+  Future<void> testUploadEndpoint() async {
+    try {
+      print('Testing upload endpoint...');
+      final response = await _dio.get(
+        '/profile/me',
+        options: Options(headers: {'Authorization': 'Bearer ${state.token}'}),
+      );
+
+      if (response.statusCode == 200) {
+        print('Profile endpoint is working');
+      } else {
+        print('Profile endpoint returned status: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error testing endpoint: $e');
+    }
   }
 }
