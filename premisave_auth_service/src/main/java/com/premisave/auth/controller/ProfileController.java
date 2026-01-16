@@ -1,6 +1,7 @@
 package com.premisave.auth.controller;
 
 import com.premisave.auth.dto.ProfileUpdateRequest;
+import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.service.ProfileService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,13 @@ public class ProfileController {
 
     public ProfileController(ProfileService profileService) {
         this.profileService = profileService;
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserDto> getCurrentUserProfile() {
+        UserDto userDto = profileService.getCurrentUserProfile();
+        return ResponseEntity.ok(userDto);
     }
 
     @PutMapping("/update")

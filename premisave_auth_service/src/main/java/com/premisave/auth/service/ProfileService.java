@@ -3,6 +3,7 @@ package com.premisave.auth.service;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.premisave.auth.dto.ProfileUpdateRequest;
+import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.entity.User;
 import com.premisave.auth.repository.UserRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +24,11 @@ public class ProfileService {
         this.cloudinary = cloudinary;
     }
 
+    public UserDto getCurrentUserProfile() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return convertToDto(user);
+    }
+
     public void updateProfile(ProfileUpdateRequest request) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (request.getUsername() != null) user.setUsername(request.getUsername());
@@ -38,7 +44,7 @@ public class ProfileService {
     }
 
     @SuppressWarnings("rawtypes")
-	public String uploadProfilePic(MultipartFile file) {
+    public String uploadProfilePic(MultipartFile file) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         try {
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap("resource_type", "image"));
@@ -49,5 +55,28 @@ public class ProfileService {
         } catch (IOException e) {
             throw new RuntimeException("Upload failed");
         }
+    }
+
+    private UserDto convertToDto(User user) {
+        UserDto dto = new UserDto();
+        dto.setId(user.getId().toString()); // Assuming ID is a Long, convert to String
+        dto.setUsername(user.getUsername()); // This will return the actual username, not email
+        dto.setFirstName(user.getFirstName());
+        dto.setMiddleName(user.getMiddleName());
+        dto.setLastName(user.getLastName());
+        dto.setEmail(user.getEmail()); // Email is separate from username
+        dto.setPhoneNumber(user.getPhoneNumber());
+        dto.setAddress1(user.getAddress1());
+        dto.setAddress2(user.getAddress2());
+        dto.setCountry(user.getCountry());
+        dto.setLanguage(user.getLanguage());
+        dto.setProfilePictureUrl(user.getProfilePictureUrl());
+        dto.setRole(user.getRole());
+        dto.setActive(user.isActive());
+        dto.setVerified(user.isVerified());
+        dto.setArchived(user.isArchived());
+        // Note: We're NOT setting the password in the DTO for security reasons
+        
+        return dto;
     }
 }
