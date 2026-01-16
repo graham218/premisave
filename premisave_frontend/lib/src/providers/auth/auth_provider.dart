@@ -69,6 +69,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final role = await SecureStorage.getRole();
     if (token != null && role != null) {
       state = state.copyWith(token: token, role: role);
+      await loadCurrentUser();
+    }
+  }
+
+  Future<void> loadCurrentUser() async {
+    if (state.token == null) return;
+
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await _dio.get(
+        '/profile/me',
+        options: Options(headers: {'Authorization': 'Bearer ${state.token}'}),
+      );
+
+      final user = UserModel.fromJson(response.data);
+      state = state.copyWith(
+        currentUser: user,
+        isLoading: false,
+      );
+    } catch (e) {
+      print('Error loading user profile: $e');
+      state = state.copyWith(isLoading: false, error: 'Failed to load profile');
     }
   }
 
@@ -113,6 +135,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         shouldRedirectToLogin: false,
       );
+
+      await loadCurrentUser();
     } catch (e) {
       String errorMessage = 'Login failed. Please try again.';
 
@@ -197,6 +221,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         redirectUrl: authRes.redirectUrl,
         isLoading: false,
       );
+
+      await loadCurrentUser();
     } catch (e) {
       String errorMessage = 'Google sign-in failed. Please try again.';
 
@@ -235,6 +261,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         redirectUrl: authRes.redirectUrl,
         isLoading: false,
       );
+
+      await loadCurrentUser();
     } catch (e) {
       String errorMessage = 'Facebook sign-in failed. Please try again.';
 
@@ -279,6 +307,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         redirectUrl: authRes.redirectUrl,
         isLoading: false,
       );
+
+      await loadCurrentUser();
     } catch (e) {
       String errorMessage = 'Apple sign-in failed. Please try again.';
 
@@ -323,9 +353,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       await _dio.post(
-        '/auth/change-password',
+        '/profile/change-password',
         data: {
-          'oldPassword': oldPassword,
+          'currentPassword': oldPassword,
           'newPassword': newPassword,
           'confirmPassword': confirmPassword,
         },
@@ -360,6 +390,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
 
       ToastUtils.showSuccessToast('Profile updated successfully!');
+
+      await loadCurrentUser();
+
       state = state.copyWith(isLoading: false);
     } catch (e) {
       String errorMessage = 'Failed to update profile. Please try again.';
@@ -387,6 +420,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
 
       ToastUtils.showSuccessToast('Profile picture updated!');
+
+      await loadCurrentUser();
+
       state = state.copyWith(isLoading: false);
       return response.data as String;
     } catch (e) {
