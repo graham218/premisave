@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../models/auth/user_model.dart';
 import '../../../providers/auth/auth_provider.dart';
 import '../../public/about_content.dart';
 import '../../public/contact_content.dart';
@@ -61,6 +62,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     final authNotifier = ref.read(authProvider.notifier);
+    final authState = ref.watch(authProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 700;
 
@@ -102,11 +104,9 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         )
             : null,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person, color: Colors.black87, size: 22),
-            onPressed: () => context.go('/profile'),
-            tooltip: 'Profile',
-          ),
+          // Profile Picture with dropdown menu
+          _buildProfileDropdown(context, authState.currentUser),
+
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.black87, size: 22),
             onPressed: () => authNotifier.confirmLogout(context),
@@ -186,6 +186,105 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         ),
       )
           : null,
+    );
+  }
+
+  Widget _buildProfileDropdown(BuildContext context, UserModel? currentUser) {
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        if (value == 'profile') {
+          context.go('/profile');
+        }
+      },
+      itemBuilder: (BuildContext context) => [
+        PopupMenuItem<String>(
+          value: 'profile',
+          child: Row(
+            children: const [
+              Icon(Icons.person, size: 20, color: Colors.black87),
+              SizedBox(width: 8),
+              Text('Profile'),
+            ],
+          ),
+        ),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: GestureDetector(
+          onTap: () => context.go('/profile'),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.grey.shade300, width: 1.5),
+            ),
+            child: ClipOval(
+              child: _buildProfilePicture(currentUser),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfilePicture(UserModel? currentUser) {
+    if (currentUser?.profilePictureUrl != null && currentUser!.profilePictureUrl!.isNotEmpty) {
+      // If user has a profile picture, display it
+      return Image.network(
+        currentUser.profilePictureUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildDefaultAvatar(currentUser);
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                  : null,
+              strokeWidth: 2,
+            ),
+          );
+        },
+      );
+    } else {
+      // If no profile picture, show default avatar with initials
+      return _buildDefaultAvatar(currentUser);
+    }
+  }
+
+  Widget _buildDefaultAvatar(UserModel? currentUser) {
+    String initials = 'U';
+    Color bgColor = const Color(0xFFFF5A5F);
+
+    if (currentUser?.firstName != null && currentUser?.lastName != null) {
+      final firstChar = currentUser!.firstName!.isNotEmpty ? currentUser.firstName![0] : '';
+      final lastChar = currentUser.lastName!.isNotEmpty ? currentUser.lastName![0] : '';
+      initials = '$firstChar$lastChar'.toUpperCase();
+    } else if (currentUser?.email != null) {
+      initials = currentUser!.email![0].toUpperCase();
+    }
+
+    // Generate a consistent color based on user ID or initials
+    if (currentUser?.id != null) {
+      final colorIndex = currentUser!.id!.hashCode % 360;
+      bgColor = HSLColor.fromAHSL(1.0, colorIndex.toDouble(), 0.7, 0.65).toColor();
+    }
+
+    return Container(
+      color: bgColor,
+      child: Center(
+        child: Text(
+          initials,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 
@@ -271,7 +370,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                     margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      color: isSelected ? Color(0xFFFF5A5F).withOpacity(0.1) : Colors.transparent,
+                      color: isSelected ? Color(0xFFFF5A5F).withValues(alpha: 0.1) : Colors.transparent,
                     ),
                     child: ListTile(
                       leading: Icon(item['icon'],
@@ -345,7 +444,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -385,7 +484,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Color(0xFFFF5A5F).withOpacity(0.1),
+                          color: Color(0xFFFF5A5F).withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(item['icon'], color: Color(0xFFFF5A5F)),

@@ -92,23 +92,21 @@ class _WelcomeCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF5A5F), Color(0xFFFF8A8E), Color(0xFFFF6B6F)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          stops: [0.0, 0.6, 1.0],
-        ),
-        borderRadius: BorderRadius.circular(24),
+        color: const Color(0xFFF5F7FA),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF5A5F).withValues(alpha: 0.6),
-            blurRadius: 25,
+            color: const Color(0xFF1A2B4C).withOpacity(0.1),
+            blurRadius: 20,
             offset: const Offset(0, 8),
-            spreadRadius: 2,
           ),
         ],
+        border: Border.all(
+          color: const Color(0xFFE8EBF0),
+          width: 1.5,
+        ),
       ),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -119,72 +117,82 @@ class _WelcomeCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hello, ${user?.firstName ?? 'Admin'} 👋',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 10,
-                            color: Colors.black45,
-                            offset: Offset(2, 2),
-                          ),
-                        ],
+                      'Welcome back,',
+                      style: TextStyle(
+                        color: const Color(0xFF2C3E50).withOpacity(0.8),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
-                      'Welcome to Premisave Admin Dashboard',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.95),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        shadows: const [
-                          Shadow(
-                            blurRadius: 5,
-                            color: Colors.black26,
-                            offset: Offset(1, 1),
-                          ),
-                        ],
+                      user?.firstName ?? 'Admin',
+                      style: const TextStyle(
+                        color: Color(0xFF1A2B4C),
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        height: 1.1,
                       ),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.white.withValues(alpha: 0.3),
-                      Colors.white.withValues(alpha: 0.1),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: const Color(0xFFD4AF37),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      blurRadius: 15,
-                      spreadRadius: 2,
+                      color: const Color(0xFFD4AF37).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                child: const Icon(Icons.admin_panel_settings, color: Colors.white, size: 32),
+                child: const Icon(
+                  Icons.admin_panel_settings_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
+          Container(
+            width: 60,
+            height: 3,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD4AF37),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 12,
+            runSpacing: 12,
             children: [
-              _buildStatusChip('System Active', Icons.check_circle, const Color(0xFF00A699)),
-              _buildStatusChip('Users Online', Icons.people, const Color(0xFF6366F1)),
-              _buildStatusChip('All Services Up', Icons.verified, const Color(0xFF10B981)),
-              _buildStatusChip('Last Backup: Today', Icons.backup, const Color(0xFF8B5CF6)),
+              _buildStatusChip(
+                'System Active',
+                Icons.check_circle_rounded,
+                const Color(0xFF10B981),
+              ),
+              _buildStatusChip(
+                'Users Online',
+                Icons.people_alt_rounded,
+                const Color(0xFF6366F1),
+              ),
+              _buildStatusChip(
+                'Services Running',
+                Icons.verified_rounded,
+                const Color(0xFF1A2B4C),
+              ),
+              _buildStatusChip(
+                'Last Backup',
+                Icons.backup_rounded,
+                const Color(0xFF8B5CF6),
+              ),
             ],
           ),
         ],
@@ -193,23 +201,18 @@ class _WelcomeCard extends StatelessWidget {
   }
 
   Widget _buildStatusChip(String text, IconData icon, Color color) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            color.withValues(alpha: 0.3),
-            color.withValues(alpha: 0.15),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withOpacity(0.15),
+          width: 1.5,
         ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.3),
+            color: const Color(0xFF1A2B4C).withOpacity(0.05),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -218,21 +221,25 @@ class _WelcomeCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: Colors.white),
-          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 16,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 8),
           Text(
             text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
+            style: TextStyle(
+              color: const Color(0xFF2C3E50),
+              fontSize: 13,
               fontWeight: FontWeight.w600,
-              shadows: [
-                Shadow(
-                  blurRadius: 5,
-                  color: Colors.black26,
-                  offset: Offset(1, 1),
-                ),
-              ],
             ),
           ),
         ],
