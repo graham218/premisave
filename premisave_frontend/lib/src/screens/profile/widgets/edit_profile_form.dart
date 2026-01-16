@@ -190,7 +190,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withOpacity(0.1),
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: theme.colorScheme.primary, size: 20),
@@ -225,7 +225,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
           child: OutlinedButton(
             onPressed: () => Navigator.pop(context),
             style: OutlinedButton.styleFrom(
-              foregroundColor: theme.colorScheme.onSurface.withOpacity(0.6),
+              foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -247,7 +247,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
                 borderRadius: BorderRadius.circular(12),
               ),
               elevation: 2,
-              shadowColor: theme.colorScheme.primary.withOpacity(0.3),
+              shadowColor: theme.colorScheme.primary.withValues(alpha: 0.3),
             ),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
