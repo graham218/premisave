@@ -213,6 +213,45 @@ public class AuthService {
         }
     }
 
+    public AuthResponse refreshToken(RefreshTokenRequest request) {
+        try {
+            // Extract username from refresh token
+            String username = jwtService.extractUsername(request.getRefreshToken());
+            
+            if (username == null) {
+                throw new RuntimeException("Invalid refresh token");
+            }
+            
+            User user = userRepository.findByEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Validate the refresh token
+            if (!jwtService.isTokenValid(request.getRefreshToken(), user)) {
+                throw new RuntimeException("Invalid or expired refresh token");
+            }
+            
+            // Generate new access token
+            String newAccessToken = jwtService.generateToken(user);
+            
+            // Update user's last login
+            user.setLastLoginAt(LocalDateTime.now());
+            userRepository.save(user);
+            
+            // Cache updated user in Redis
+            redisTemplate.opsForValue().set("user:" + user.getId(), user);
+            
+            AuthResponse response = new AuthResponse();
+            response.setToken(newAccessToken);
+            response.setRole(user.getRole().name());
+            response.setRedirectUrl(getDashboardUrl(user.getRole()));
+            
+            return response;
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Token refresh failed: " + e.getMessage(), e);
+        }
+    }
+
     public void verifyAccount(String tokenStr) {
         Token token = tokenRepository.findByToken(tokenStr)
                 .orElseThrow(() -> new RuntimeException("Invalid or expired token"));

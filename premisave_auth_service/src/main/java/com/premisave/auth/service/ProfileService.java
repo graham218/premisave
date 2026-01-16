@@ -2,6 +2,7 @@ package com.premisave.auth.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.premisave.auth.dto.PasswordChangeRequest;
 import com.premisave.auth.dto.ProfileUpdateRequest;
 import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.entity.User;
@@ -31,40 +32,47 @@ public class ProfileService {
     }
 
     public UserDto getCurrentUserProfile() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String principalName = authentication.getName();
-        log.debug("Getting profile for principal: {}", principalName);
-        
-        // First try to find by email (since authentication likely uses email)
-        User user = userRepository.findByEmail(principalName)
-            .or(() -> {
-                // If not found by email, try by username
-                log.debug("User not found by email {}, trying username", principalName);
-                return userRepository.findByUsername(principalName);
-            })
-            .orElseThrow(() -> new RuntimeException("User not found for principal: " + principalName));
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String principalName = authentication.getName(); // This will be the email
             
-        log.debug("Found user with username: {}, email: {}", user.getUsername(), user.getEmail());
-        return convertToDto(user);
+            log.debug("Getting profile for authenticated user with email: {}", principalName);
+            
+            // Find user by email (since that's what Spring Security uses for authentication)
+            User user = userRepository.findByEmail(principalName)
+                .orElseThrow(() -> {
+                    log.error("User not found with email: {}", principalName);
+                    return new RuntimeException("User not found");
+                });
+            
+            log.debug("Found user - Display username: '{}', Email: '{}'", 
+                user.getDisplayUsername(), user.getEmail());
+            
+            return convertToDto(user);
+            
+        } catch (Exception e) {
+            log.error("Error getting current user profile: ", e);
+            throw new RuntimeException("Failed to get user profile: " + e.getMessage());
+        }
     }
 
     public void updateProfile(ProfileUpdateRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String principalName = authentication.getName();
+        String principalName = authentication.getName(); // Email
         
         User user = userRepository.findByEmail(principalName)
-            .or(() -> userRepository.findByUsername(principalName))
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Only update username if it's being changed AND it's not already taken by another user
-        if (request.getUsername() != null && !request.getUsername().equals(user.getUsername())) {
-            // Check if new username is available
+        // Update display username if provided and different
+        if (request.getUsername() != null && !request.getUsername().equals(user.getDisplayUsername())) {
+            // Check if new display username is available
             if (userRepository.existsByUsername(request.getUsername())) {
                 throw new RuntimeException("Username already taken");
             }
-            user.setUsername(request.getUsername());
+            user.setDisplayUsername(request.getUsername());
         }
         
+        // Update other fields
         if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
         if (request.getMiddleName() != null) user.setMiddleName(request.getMiddleName());
         if (request.getLastName() != null) user.setLastName(request.getLastName());
@@ -79,18 +87,17 @@ public class ProfileService {
                 throw new RuntimeException("Invalid language value: " + request.getLanguage());
             }
         }
-        userRepository.save(user);
         
+        userRepository.save(user);
         log.info("Profile updated for user: {}", user.getEmail());
     }
 
     @SuppressWarnings("rawtypes")
     public String uploadProfilePic(MultipartFile file) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String principalName = authentication.getName();
+        String principalName = authentication.getName(); // Email
         
         User user = userRepository.findByEmail(principalName)
-            .or(() -> userRepository.findByUsername(principalName))
             .orElseThrow(() -> new RuntimeException("User not found"));
             
         try {
@@ -100,8 +107,8 @@ public class ProfileService {
                 throw new RuntimeException("Only image files are allowed");
             }
             
-            // Validate file size (e.g., 5MB max)
-            long maxSize = 5 * 1024 * 1024; // 5MB
+            // Validate file size (5MB max)
+            long maxSize = 5 * 1024 * 1024;
             if (file.getSize() > maxSize) {
                 throw new RuntimeException("File size must be less than 5MB");
             }
@@ -120,15 +127,11 @@ public class ProfileService {
         }
     }
 
-    /**
-     * Update user password
-     */
     public void updatePassword(String currentPassword, String newPassword, String confirmPassword) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String principalName = authentication.getName();
+        String principalName = authentication.getName(); // Email
         
         User user = userRepository.findByEmail(principalName)
-            .or(() -> userRepository.findByUsername(principalName))
             .orElseThrow(() -> new RuntimeException("User not found"));
         
         // Validate current password
@@ -157,9 +160,6 @@ public class ProfileService {
         log.info("Password updated successfully for user: {}", user.getEmail());
     }
 
-    /**
-     * Password strength validation
-     */
     private void validatePasswordStrength(String password) {
         if (password.length() < 8) {
             throw new RuntimeException("Password must be at least 8 characters long");
@@ -185,7 +185,10 @@ public class ProfileService {
     private UserDto convertToDto(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId().toString());
-        dto.setUsername(user.getUsername());
+        
+        // Get the display username (not the Spring Security username which is email)
+        dto.setUsername(user.getDisplayUsername()); // This will return "graham_admin"
+        
         dto.setFirstName(user.getFirstName());
         dto.setMiddleName(user.getMiddleName());
         dto.setLastName(user.getLastName());
@@ -200,9 +203,11 @@ public class ProfileService {
         dto.setActive(user.isActive());
         dto.setVerified(user.isVerified());
         dto.setArchived(user.isArchived());
-        // Password should never be returned in DTO
+        // Don't set password for security
         
-        log.debug("Converted user to DTO - username: {}, email: {}", dto.getUsername(), dto.getEmail());
+        log.debug("Converted to DTO - Display Username: '{}', Email: '{}'", 
+            dto.getUsername(), dto.getEmail());
+        
         return dto;
     }
 }

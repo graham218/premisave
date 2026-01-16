@@ -33,6 +33,4 @@ public class ProfileUpdateRequest {
     private String country;
     
     private String language;
-    
-    // Note: Removed password fields since they are handled separately
 }

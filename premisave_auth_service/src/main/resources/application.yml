@@ -55,7 +55,8 @@ cloudinary:
 # ── JWT ──
 jwt:
   secret: ${JWT_SECRET}
-  expiration: ${JWT_EXPIRATION:86400000} # 24 hours
+  expiration: ${JWT_EXPIRATION:2592000000} # 30 days in milliseconds
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:2592000000} # 30 days for refresh token
 
 # ── Rate Limiting ──
 rate-limit:

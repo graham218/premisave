@@ -34,16 +34,21 @@ public class JwtService {
     }
 
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        return generateToken(new HashMap<>(), userDetails, expiration);
     }
 
-    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+    public String generateRefreshToken(UserDetails userDetails) {
+        // Generate refresh token with the same expiration as access token (30 days)
+        return generateToken(new HashMap<>(), userDetails, expiration);
+    }
+
+    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails, long expirationTime) {
         return Jwts
                 .builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -53,36 +58,36 @@ public class JwtService {
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
     }
 
-    private boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
-    private Date extractExpiration(String token) {
+    public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts
-                .parserBuilder()
-                .setSigningKey(getSignInKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            return Jwts
+                    .parserBuilder()
+                    .setSigningKey(getSignInKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid JWT token", e);
+        }
     }
 
     private Key getSignInKey() {
         try {
-            // Decode the base64 secret
             byte[] keyBytes = Decoders.BASE64.decode(secret);
             
-            // Ensure key is at least 256 bits (32 bytes) for HS256
             if (keyBytes.length < 32) {
-                // Pad with zeros to reach 32 bytes
                 byte[] paddedKeyBytes = new byte[32];
                 System.arraycopy(keyBytes, 0, paddedKeyBytes, 0, Math.min(keyBytes.length, 32));
                 keyBytes = paddedKeyBytes;
             } else if (keyBytes.length > 32) {
-                // Truncate if longer than 32 bytes
                 byte[] truncatedKeyBytes = new byte[32];
                 System.arraycopy(keyBytes, 0, truncatedKeyBytes, 0, 32);
                 keyBytes = truncatedKeyBytes;
@@ -90,7 +95,6 @@ public class JwtService {
             
             return Keys.hmacShaKeyFor(keyBytes);
         } catch (Exception e) {
-            // If decoding fails, use the string directly (not base64)
             return Keys.hmacShaKeyFor(secret.getBytes());
         }
     }
