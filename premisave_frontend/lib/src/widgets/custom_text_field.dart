@@ -5,8 +5,13 @@ class CustomTextField extends StatelessWidget {
   final String label;
   final String hintText;
   final Widget? prefixIcon;
+  final Widget? suffixIcon;
   final bool obscureText;
   final TextInputType? keyboardType;
+  final String? Function(String?)? validator;
+  final bool enabled;
+  final int? maxLines;
+  final TextInputAction? textInputAction;
 
   const CustomTextField({
     super.key,
@@ -14,43 +19,73 @@ class CustomTextField extends StatelessWidget {
     required this.label,
     required this.hintText,
     this.prefixIcon,
+    this.suffixIcon,
     this.obscureText = false,
     this.keyboardType,
+    this.validator,
+    this.enabled = true,
+    this.maxLines = 1,
+    this.textInputAction,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface.withOpacity(0.8),
           ),
         ),
-        const SizedBox(height: 4),
-        TextField(
+        const SizedBox(height: 6),
+        TextFormField(
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
+          enabled: enabled,
+          maxLines: maxLines,
+          textInputAction: textInputAction,
+          validator: validator,
+          style: TextStyle(
+            fontSize: 16,
+            color: theme.colorScheme.onSurface,
+          ),
           decoration: InputDecoration(
             hintText: hintText,
-            prefixIcon: prefixIcon,
+            hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4)),
+            prefixIcon: prefixIcon != null
+                ? Padding(
+              padding: const EdgeInsets.only(left: 12, right: 8),
+              child: IconTheme(
+                data: IconThemeData(
+                  color: theme.colorScheme.primary,
+                  size: 22,
+                ),
+                child: prefixIcon!,
+              ),
+            )
+                : null,
+            suffixIcon: suffixIcon,
+            filled: true,
+            fillColor: theme.colorScheme.surface,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.grey),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: theme.dividerColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: theme.dividerColor),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.blue, width: 2),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
             ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 16,
-            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
         ),
       ],

@@ -14,8 +14,12 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/splash_screen.dart';
 
 final GoRouter router = GoRouter(
-  initialLocation: '/splash',
+  initialLocation: '/', // Changed to root
   routes: [
+    // Root route
+    GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
+
+    // All other routes
     GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
     GoRoute(path: '/signup', builder: (_, __) => const SignupScreen()),
