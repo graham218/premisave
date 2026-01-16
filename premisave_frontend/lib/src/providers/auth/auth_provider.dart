@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
@@ -480,49 +482,55 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<String> uploadProfilePicture(XFile image) async {
-    state = state.copyWith(isLoading: true);
     try {
+      print('Uploading profile picture...');
+
+      // Use XFile.readAsBytes() which works on all platforms
+      final bytes = await image.readAsBytes();
+      print('Image size: ${bytes.length} bytes');
+
+      // Create multipart file
+      final multipartFile = MultipartFile.fromBytes(
+        bytes,
+        filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      );
+
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(
-          image.path,
-          filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        ),
+        'file': multipartFile,
       });
 
+      // Send request
       final response = await _dio.post(
-        '/profile/upload-profile-picture', // Updated endpoint
+        '/profile/upload-profile-picture',
         data: formData,
         options: Options(
           headers: {
             'Authorization': 'Bearer ${state.token}',
-            'Content-Type': 'multipart/form-data',
           },
         ),
       );
 
+      print('Upload successful! URL: ${response.data}');
       ToastUtils.showSuccessToast('Profile picture updated!');
 
+      // Refresh user data
       await loadCurrentUser();
 
-      state = state.copyWith(isLoading: false);
       return response.data as String;
+
     } catch (e) {
-      String errorMessage = 'Failed to upload image. Please try again.';
+      print('Upload error: $e');
 
       if (e is DioException) {
-        errorMessage = _getUserFriendlyErrorMessage(e);
-
-        // Log detailed error for debugging
-        print('Profile picture upload error: ${e.response?.data}');
         print('Status code: ${e.response?.statusCode}');
-        print('Error message: ${e.message}');
+        print('Response: ${e.response?.data}');
       }
 
-      ToastUtils.showErrorToast(errorMessage);
-      state = state.copyWith(error: errorMessage, isLoading: false);
+      ToastUtils.showErrorToast('Failed to upload image. Please try again.');
       rethrow;
     }
   }
+
 
   Future<void> confirmLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
