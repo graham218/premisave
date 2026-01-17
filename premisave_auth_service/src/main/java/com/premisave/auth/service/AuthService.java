@@ -144,7 +144,7 @@ public class AuthService {
         System.out.println("DEBUG: User saved to MongoDB with ID: " + user.getId());
 
         String activationToken = generateToken(user, TokenType.ACTIVATION);
-        String activationLink = backendUrl + "/auth/verify/" + activationToken;
+        String activationLink = frontendUrl + "/verify/" + activationToken;
         
         // Prepare template data
         Map<String, String> templateData = new HashMap<>();
