@@ -88,18 +88,18 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar:
-          _buildAppBar(isMobile, context, authState.currentUser, authNotifier),
+      _buildAppBar(isMobile, context, authState.currentUser, authNotifier),
       body: _getCurrentContent(),
       bottomNavigationBar: isMobile ? _buildBottomNavigationBar() : null,
     );
   }
 
   PreferredSizeWidget _buildAppBar(
-    bool isMobile,
-    BuildContext context,
-    UserModel? currentUser,
-    AuthNotifier authNotifier,
-  ) {
+      bool isMobile,
+      BuildContext context,
+      UserModel? currentUser,
+      AuthNotifier authNotifier,
+      ) {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0.5,
@@ -111,7 +111,6 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
       centerTitle: !isMobile,
       title: !isMobile ? _buildDesktopNavigation() : null,
       actions: [
-        if (!isMobile) _buildLanguageCurrencySelector(),
         _buildProfileMenu(context, currentUser, authNotifier),
       ],
     );
@@ -216,7 +215,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
               },
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -239,34 +238,6 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
     );
   }
 
-  Widget _buildLanguageCurrencySelector() {
-    return PopupMenuButton<String>(
-      icon: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Row(
-          children: [
-            Icon(Icons.language, size: 20, color: Colors.black87),
-            SizedBox(width: 4),
-            Text('EN | KES',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-          ],
-        ),
-      ),
-      itemBuilder: (context) => [
-        const PopupMenuItem<String>(value: 'en', child: Text('English')),
-        const PopupMenuItem<String>(value: 'sw', child: Text('Swahili')),
-        const PopupMenuItem<String>(
-            value: 'kes', child: Text('KES - Kenyan Shilling')),
-        const PopupMenuItem<String>(
-            value: 'usd', child: Text('USD - US Dollar')),
-      ],
-    );
-  }
-
   Widget _buildProfileMenu(
       BuildContext context, UserModel? currentUser, AuthNotifier authNotifier) {
     return PopupMenuButton<String>(
@@ -282,6 +253,9 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
           _navigateToRoute('/client/about');
         } else if (value == 'contact') {
           _navigateToRoute('/client/contact');
+        } else if (value == 'language') {
+          // Handle language/currency selection
+          _showLanguageCurrencyDialog(context);
         }
       },
       itemBuilder: (context) => [
@@ -312,7 +286,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
                           child: CircularProgressIndicator(
                             value: loadingProgress.expectedTotalBytes != null
                                 ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
+                                loadingProgress.expectedTotalBytes!
                                 : null,
                             strokeWidth: 2,
                             color: const Color(0xFF00A699),
@@ -325,8 +299,8 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
                           backgroundColor: const Color(0xFF00A699),
                           child: Text(
                             currentUser.firstName
-                                    ?.substring(0, 1)
-                                    .toUpperCase() ??
+                                ?.substring(0, 1)
+                                .toUpperCase() ??
                                 'U',
                             style: const TextStyle(
                               color: Colors.white,
@@ -376,10 +350,25 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
           child: ListTile(
               leading: Icon(Icons.settings), title: Text('Account settings')),
         ),
+        PopupMenuItem<String>(
+          value: 'language',
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.language, size: 20, color: Colors.black87),
+            ),
+            title: const Text('Language & Currency'),
+            subtitle: const Text('EN | KES'),
+          ),
+        ),
         const PopupMenuItem<String>(
           value: 'help',
           child:
-              ListTile(leading: Icon(Icons.help), title: Text('Help Center')),
+          ListTile(leading: Icon(Icons.help), title: Text('Help Center')),
         ),
         const PopupMenuItem<String>(
           value: 'about',
@@ -435,7 +424,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
                         child: CircularProgressIndicator(
                           value: loadingProgress.expectedTotalBytes != null
                               ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
+                              loadingProgress.expectedTotalBytes!
                               : null,
                           strokeWidth: 2,
                           color: const Color(0xFF00A699),
@@ -448,8 +437,8 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
                         backgroundColor: const Color(0xFF00A699),
                         child: Text(
                           currentUser.firstName
-                                  ?.substring(0, 1)
-                                  .toUpperCase() ??
+                              ?.substring(0, 1)
+                              .toUpperCase() ??
                               'U',
                           style: const TextStyle(
                             color: Colors.white,
@@ -477,6 +466,109 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLanguageCurrencyDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Language & Currency'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Language',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                _buildLanguageOption('English', 'EN', true),
+                _buildLanguageOption('Swahili', 'SW', false),
+                const SizedBox(height: 16),
+                const Text(
+                  'Currency',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                _buildCurrencyOption('KES - Kenyan Shilling', true),
+                _buildCurrencyOption('USD - US Dollar', false),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00A699),
+              ),
+              child: const Text('Apply Changes'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLanguageOption(String language, String code, bool isSelected) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFF00A699).withOpacity(0.1) : null,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isSelected ? const Color(0xFF00A699) : Colors.grey[300]!,
+        ),
+      ),
+      child: ListTile(
+        leading: isSelected
+            ? const Icon(Icons.check_circle, color: Color(0xFF00A699))
+            : const Icon(Icons.radio_button_unchecked, color: Colors.grey),
+        title: Text(language),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            code,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+        ),
+        onTap: () {
+          // Handle language selection
+        },
+      ),
+    );
+  }
+
+  Widget _buildCurrencyOption(String currency, bool isSelected) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFF00A699).withOpacity(0.1) : null,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isSelected ? const Color(0xFF00A699) : Colors.grey[300]!,
+        ),
+      ),
+      child: ListTile(
+        leading: isSelected
+            ? const Icon(Icons.check_circle, color: Color(0xFF00A699))
+            : const Icon(Icons.radio_button_unchecked, color: Colors.grey),
+        title: Text(currency),
+        onTap: () {
+          // Handle currency selection
+        },
       ),
     );
   }
