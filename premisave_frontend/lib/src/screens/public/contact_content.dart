@@ -5,132 +5,133 @@ class ContactContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionTitle('Contact Information'),
-            const SizedBox(height: 20),
-
-            // Contact Information Cards
-            _buildContactCard(
-              Icons.location_on,
-              'Premisave Headquarters',
-              'Premisave Plaza\n123 Business District\nNairobi, Kenya\nP.O. Box 12345-00100',
-            ),
-
-            _buildContactCard(
-              Icons.phone,
-              'Phone Support',
-              'Customer Service: +254-700-123456\nTechnical Support: +254-700-654321\nEmergency: +254-720-987654',
-            ),
-
-            _buildContactCard(
-              Icons.email,
-              'Email Addresses',
-              'info@premisave.co.ke\nsupport@premisave.co.ke\ntechnical@premisave.co.ke\nadmin@premisave.co.ke',
-            ),
-
-            _buildContactCard(
-              Icons.access_time,
-              'Business Hours',
-              'Monday - Friday: 8:00 AM - 6:00 PM\nSaturday: 9:00 AM - 2:00 PM\nSunday & Holidays: Closed',
-            ),
-
-            const SizedBox(height: 30),
-            _buildSectionTitle('Team Contact'),
-            const SizedBox(height: 16),
-
-            // Team Contacts Grid
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const Text(
+            'Get in Touch',
+            style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'We\'re here to help you',
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 32),
+          _ContactCard(
+            icon: Icons.location_on,
+            title: 'Visit Us',
+            items: [
+              'Premisave Plaza, 123 Business District',
+              'Nairobi, Kenya',
+              'P.O. Box 12345-00100',
+            ],
+            color: Colors.green,
+          ),
+          const SizedBox(height: 16),
+          _ContactCard(
+            icon: Icons.phone,
+            title: 'Call Us',
+            items: [
+              'Customer Service: +254-700-123456',
+              'Technical Support: +254-700-654321',
+              'Emergency: +254-720-987654',
+            ],
+            color: Colors.blue,
+          ),
+          const SizedBox(height: 16),
+          _ContactCard(
+            icon: Icons.email,
+            title: 'Email Us',
+            items: [
+              'info@premisave.co.ke',
+              'support@premisave.co.ke',
+              'admin@premisave.co.ke',
+            ],
+            color: Colors.orange,
+          ),
+          const SizedBox(height: 16),
+          _ContactCard(
+            icon: Icons.access_time,
+            title: 'Hours',
+            items: [
+              'Mon-Fri: 8:00 AM - 6:00 PM',
+              'Saturday: 9:00 AM - 2:00 PM',
+              'Sunday & Holidays: Closed',
+            ],
+            color: Colors.purple,
+          ),
+          const SizedBox(height: 32),
+          const Text(
+            'Our Team',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 16),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.2,
-              children: [
-                _buildTeamMemberCard(
-                  'John Mwangi',
-                  'Head of Operations',
-                  '+254-723-456789',
-                  'john@premisave.co.ke',
-                  Colors.blue,
-                ),
-                _buildTeamMemberCard(
-                  'Sarah Kimani',
-                  'Technical Manager',
-                  '+254-724-567890',
-                  'sarah@premisave.co.ke',
-                  Colors.green,
-                ),
-                _buildTeamMemberCard(
-                  'David Ochieng',
-                  'Customer Support Lead',
-                  '+254-725-678901',
-                  'david@premisave.co.ke',
-                  Colors.orange,
-                ),
-                _buildTeamMemberCard(
-                  'Grace Wambui',
-                  'Finance Director',
-                  '+254-726-789012',
-                  'grace@premisave.co.ke',
-                  Colors.purple,
-                ),
-              ],
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.1,
             ),
-
-            const SizedBox(height: 30),
-            _buildSectionTitle('Regional Offices'),
-            const SizedBox(height: 16),
-
-            _buildBranchCard('Nairobi Office', 'Upper Hill, Nairobi CBD'),
-            _buildBranchCard('Mombasa Office', 'Nyali, Mombasa'),
-            _buildBranchCard('Kisumu Office', 'Milimani, Kisumu'),
-            _buildBranchCard('Nakuru Office', 'CBD, Nakuru'),
-          ],
-        ),
+            itemCount: 4,
+            itemBuilder: (context, index) => _TeamCard(index: index),
+          ),
+          const SizedBox(height: 32),
+          const Text(
+            'Regional Offices',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 16),
+          ...['Nairobi Office', 'Mombasa Office', 'Kisumu Office', 'Nakuru Office']
+              .map((office) => _OfficeCard(name: office))
+              .toList(),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.bold,
-        color: Color(0xFF004799),
-      ),
-    );
-  }
+class _ContactCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final List<String> items;
+  final Color color;
 
-  Widget _buildContactCard(IconData icon, String title, String content) {
+  const _ContactCard({
+    required this.icon,
+    required this.title,
+    required this.items,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [color.withOpacity(0.1), Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.all(20),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
+                color: color.withOpacity(0.2),
+                shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: Colors.white, size: 24),
+              child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -139,21 +140,17 @@ class ContactContent extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF004799),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: color,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    content,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[700],
-                      height: 1.5,
-                    ),
-                  ),
+                  ...items.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(item, style: const TextStyle(fontSize: 14)),
+                  )),
                 ],
               ),
             ),
@@ -162,125 +159,113 @@ class ContactContent extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildTeamMemberCard(String name, String position, String phone, String email, Color color) {
+class _TeamCard extends StatelessWidget {
+  final int index;
+
+  const _TeamCard({required this.index});
+
+  final List<Map<String, dynamic>> team = const [
+    {
+      'name': 'John Mwangi',
+      'role': 'Operations Head',
+      'email': 'john@premisave.co.ke',
+      'image': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+    },
+    {
+      'name': 'Sarah Kimani',
+      'role': 'Technical Manager',
+      'email': 'sarah@premisave.co.ke',
+      'image': 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=300',
+    },
+    {
+      'name': 'David Ochieng',
+      'role': 'Support Lead',
+      'email': 'david@premisave.co.ke',
+      'image': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
+    },
+    {
+      'name': 'Grace Wambui',
+      'role': 'Finance Director',
+      'email': 'grace@premisave.co.ke',
+      'image': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+    },
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final member = team[index];
+
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
         padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [Colors.grey[50]!, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [color, color.withOpacity(0.8)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      name.split(' ').map((n) => n[0]).join(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        position,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            CircleAvatar(
+              radius: 30,
+              backgroundImage: NetworkImage(member['image']),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(Icons.phone, color: color, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    phone,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 12),
+            Text(
+              member['name'],
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              member['role'],
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.email, color: color, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    email,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                ),
-              ],
+            Text(
+              member['email'],
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildBranchCard(String title, String address) {
+class _OfficeCard extends StatelessWidget {
+  final String name;
+
+  const _OfficeCard({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: const Color(0xFF0D47A1).withOpacity(0.1),
+            color: Colors.green.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.business, color: Color(0xFF0D47A1)),
+          child: const Icon(Icons.business, color: Colors.green),
         ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(address),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text('${name.split(' ')[0]} CBD'),
         trailing: IconButton(
-          icon: const Icon(Icons.location_on, color: Color(0xFF0D47A1)),
+          icon: const Icon(Icons.location_on, color: Colors.green),
           onPressed: () {},
         ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
   }

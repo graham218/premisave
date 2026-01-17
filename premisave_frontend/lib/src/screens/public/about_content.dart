@@ -1,60 +1,76 @@
 import 'package:flutter/material.dart';
 
-class AboutContent extends StatefulWidget {
+class AboutContent extends StatelessWidget {
   const AboutContent({super.key});
 
   @override
-  State<AboutContent> createState() => _AdminAboutContentState();
+  Widget build(BuildContext context) {
+    return const SingleChildScrollView(
+      padding: EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _HeaderSection(),
+          SizedBox(height: 32),
+          _MissionVision(),
+          SizedBox(height: 32),
+          _TeamSection(),
+          SizedBox(height: 32),
+          _CoreValues(),
+          SizedBox(height: 32),
+          _ContactSection(),
+        ],
+      ),
+    );
+  }
 }
 
-class _AdminAboutContentState extends State<AboutContent> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 5, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+class _HeaderSection extends StatelessWidget {
+  const _HeaderSection();
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.green[50]!, Colors.blue[50]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.all(32),
       child: Column(
         children: [
-          Container(
-            color: Colors.white,
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              labelColor: Color(0xFF0D47A1),
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: Color(0xFF0D47A1),
-              tabs: const [
-                Tab(text: 'About Premisave'),
-                Tab(text: 'Management Team'),
-                Tab(text: 'Mission & Vision'),
-                Tab(text: 'Core Values'),
-                Tab(text: 'Privacy Policy'),
-              ],
+          const CircleAvatar(
+            radius: 60,
+            backgroundImage: NetworkImage(
+              'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&auto=format&fit=crop',
             ),
           ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: const [
-                AboutPremisaveTab(),
-                ManagementTeamTab(),
-                MissionVisionTab(),
-                CoreValuesTab(),
-                PrivacyPolicyTab(),
-              ],
+          const SizedBox(height: 20),
+          const Text(
+            'Premisave',
+            style: TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.w800,
+              color: Colors.black,
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Revolutionizing Real Estate in Kenya',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Premisave connects property owners, buyers, and service providers through innovative technology, making real estate transactions secure, transparent, and efficient.',
+            style: TextStyle(fontSize: 16, height: 1.6),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -62,104 +78,29 @@ class _AdminAboutContentState extends State<AboutContent> with SingleTickerProvi
   }
 }
 
-class AboutPremisaveTab extends StatelessWidget {
-  const AboutPremisaveTab({super.key});
+class _MissionVision extends StatelessWidget {
+  const _MissionVision();
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF0D47A1).withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.business, color: Colors.white, size: 48),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'About Premisave',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF004799),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Premisave is a revolutionary real estate platform that connects property owners, buyers, and service providers in Kenya\'s growing real estate market. Founded in 2020, we have rapidly grown to become one of the most trusted names in the industry.',
-                    style: TextStyle(fontSize: 16, height: 1.6),
-                    textAlign: TextAlign.justify,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Our platform leverages cutting-edge technology to streamline property transactions, provide secure payment solutions, and offer comprehensive property management services. We are committed to transparency, security, and excellence in every interaction.',
-                    style: TextStyle(fontSize: 16, height: 1.6),
-                    textAlign: TextAlign.justify,
-                  ),
-                  const SizedBox(height: 20),
-                  const Divider(),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStatItem('1,250+', 'Active Users'),
-                      _buildStatItem('840+', 'Properties Listed'),
-                      _buildStatItem('KES 2.5B+', 'Transactions'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String value, String label) {
-    return Column(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF004799),
+        Expanded(
+          child: _MissionVisionCard(
+            icon: Icons.flag,
+            title: 'Our Mission',
+            content: 'To revolutionize real estate in Kenya with secure, transparent, and efficient digital solutions that empower everyone in the property market.',
+            color: Colors.green,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
+        const SizedBox(width: 20),
+        Expanded(
+          child: _MissionVisionCard(
+            icon: Icons.visibility,
+            title: 'Our Vision',
+            content: 'To become East Africa\'s leading real estate platform, transforming how people buy, sell, and manage properties sustainably.',
+            color: Colors.blue,
           ),
         ),
       ],
@@ -167,405 +108,381 @@ class AboutPremisaveTab extends StatelessWidget {
   }
 }
 
-class ManagementTeamTab extends StatelessWidget {
-  const ManagementTeamTab({super.key});
+class _MissionVisionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String content;
+  final Color color;
+
+  const _MissionVisionCard({
+    required this.icon,
+    required this.title,
+    required this.content,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final managementTeam = [
-      {'name': 'Dr. James Maina', 'position': 'Chief Executive Officer'},
-      {'name': 'Grace Nyong\'o', 'position': 'Chief Financial Officer'},
-      {'name': 'Peter Kariuki', 'position': 'Chief Technology Officer'},
-      {'name': 'Lucy Wambui', 'position': 'Head of Operations'},
-      {'name': 'Robert Omondi', 'position': 'Sales Director'},
-      {'name': 'Susan Chebet', 'position': 'Marketing Director'},
-    ];
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.8,
-      ),
-      itemCount: managementTeam.length,
-      itemBuilder: (context, index) {
-        final member = managementTeam[index];
-        return Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0D47A1).withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      member['name']!.split(' ').map((n) => n[0]).join(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  member['name']!,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Color(0xFF004799),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  member['position']!,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 32, color: color),
             ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class MissionVisionTab extends StatelessWidget {
-  const MissionVisionTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Column(
-                      children: [
-                        Icon(Icons.flag, color: Colors.white, size: 40),
-                        SizedBox(height: 16),
-                        Text(
-                          'Our Mission',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          'To revolutionize real estate transactions in Kenya by providing a secure, transparent, and efficient platform that empowers property owners, buyers, and service providers.',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            height: 1.6,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.green.withOpacity(0.1),
-                          Colors.green.withOpacity(0.05),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.green.withOpacity(0.2)),
-                    ),
-                    child: const Column(
-                      children: [
-                        Icon(Icons.visibility, color: Colors.green, size: 40),
-                        SizedBox(height: 16),
-                        Text(
-                          'Our Vision',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          'To become East Africa\'s leading real estate platform, transforming how people buy, sell, and manage properties while driving sustainable growth in the real estate sector.',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 16,
-                            height: 1.6,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: color,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              content,
+              style: const TextStyle(fontSize: 15, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class CoreValuesTab extends StatelessWidget {
-  const CoreValuesTab({super.key});
+class _TeamSection extends StatelessWidget {
+  const _TeamSection();
+
+  final List<Map<String, dynamic>> teamMembers = const [
+    {
+      'name': 'James Maina',
+      'role': 'CEO',
+      'image': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop',
+    },
+    {
+      'name': 'Grace Nyong\'o',
+      'role': 'CFO',
+      'image': 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=300&auto=format&fit=crop',
+    },
+    {
+      'name': 'Peter Kariuki',
+      'role': 'CTO',
+      'image': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop',
+    },
+    {
+      'name': 'Lucy Wambui',
+      'role': 'Operations',
+      'image': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final coreValues = [
-      {
-        'title': 'Integrity',
-        'description': 'We conduct our business with honesty and transparency',
-        'icon': Icons.verified,
-        'color': Colors.blue,
-      },
-      {
-        'title': 'Innovation',
-        'description': 'We embrace technology to create better solutions',
-        'icon': Icons.lightbulb,
-        'color': Colors.green,
-      },
-      {
-        'title': 'Customer Focus',
-        'description': 'Our customers are at the heart of everything we do',
-        'icon': Icons.people,
-        'color': Colors.orange,
-      },
-      {
-        'title': 'Excellence',
-        'description': 'We strive for the highest standards in service delivery',
-        'icon': Icons.star,
-        'color': Colors.purple,
-      },
-      {
-        'title': 'Teamwork',
-        'description': 'We collaborate to achieve common goals',
-        'icon': Icons.group,
-        'color': Colors.teal,
-      },
-      {
-        'title': 'Sustainability',
-        'description': 'We build for the long-term benefit of all stakeholders',
-        'icon': Icons.eco,
-        'color': Colors.green,
-      },
-    ];
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: coreValues.length,
-      itemBuilder: (context, index) {
-        final value = coreValues[index];
-
-        // Add null safety checks
-        final color = value['color'] as Color?;
-        final icon = value['icon'] as IconData?;
-        final title = value['title'] as String?;
-        final description = value['description'] as String?;
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Meet Our Team',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Experts driving innovation in real estate',
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+        ),
+        const SizedBox(height: 20),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 20,
+            mainAxisSpacing: 20,
+            childAspectRatio: 0.8,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        (color ?? Colors.blue).withOpacity(0.2),
-                        (color ?? Colors.blue).withOpacity(0.1),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    icon ?? Icons.help_outline, // Fallback icon
-                    color: color ?? Colors.blue,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title ?? 'No Title', // Fallback text
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: color ?? Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        description ?? 'No description available', // Fallback text
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+          itemCount: teamMembers.length,
+          itemBuilder: (context, index) => _TeamMemberCard(member: teamMembers[index]),
+        ),
+      ],
     );
   }
 }
 
-class PrivacyPolicyTab extends StatelessWidget {
-  const PrivacyPolicyTab({super.key});
+class _TeamMemberCard extends StatelessWidget {
+  final Map<String, dynamic> member;
+
+  const _TeamMemberCard({required this.member});
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [Colors.grey[50]!, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 50,
+              backgroundImage: NetworkImage(member['image']),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              member['name'],
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              member['role'],
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CoreValues extends StatelessWidget {
+  const _CoreValues();
+
+  final List<Map<String, dynamic>> values = const [
+    {
+      'icon': Icons.verified,
+      'title': 'Integrity',
+      'description': 'Honesty and transparency in all dealings',
+      'color': Colors.green,
+    },
+    {
+      'icon': Icons.lightbulb,
+      'title': 'Innovation',
+      'description': 'Creating better solutions with technology',
+      'color': Colors.blue,
+    },
+    {
+      'icon': Icons.people,
+      'title': 'Customer Focus',
+      'description': 'Our customers are at the heart of everything',
+      'color': Colors.orange,
+    },
+    {
+      'icon': Icons.star,
+      'title': 'Excellence',
+      'description': 'Highest standards in service delivery',
+      'color': Colors.purple,
+    },
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Core Values',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'The principles that guide our work',
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+        ),
+        const SizedBox(height: 20),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 20,
+            mainAxisSpacing: 20,
+            childAspectRatio: 1.2,
+          ),
+          itemCount: values.length,
+          itemBuilder: (context, index) => _ValueCard(value: values[index]),
+        ),
+      ],
+    );
+  }
+}
+
+class _ValueCard extends StatelessWidget {
+  final Map<String, dynamic> value;
+
+  const _ValueCard({required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [value['color'].withOpacity(0.1), Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: value['color'].withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(value['icon'], size: 28, color: value['color']),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              value['title'],
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: value['color'],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value['description'],
+              style: const TextStyle(fontSize: 14, height: 1.4),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ContactSection extends StatelessWidget {
+  const _ContactSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.green[50]!, Colors.blue[50]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.all(32),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Privacy Policy',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF004799),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildPolicySection(
-                    'Information We Collect',
-                    'We collect personal information necessary for service provision including contact details, property information, transaction history, and usage data. This information is used to provide you with personalized services and improve your experience.',
-                  ),
-                  _buildPolicySection(
-                    'How We Use Your Information',
-                    'Your information is used for service delivery, transaction processing, customer support, regulatory compliance, security, and service improvement. We do not sell your personal information to third parties.',
-                  ),
-                  _buildPolicySection(
-                    'Data Security',
-                    'We implement robust security measures including SSL encryption, secure servers, access controls, and regular security audits to protect your personal information from unauthorized access or disclosure.',
-                  ),
-                  _buildPolicySection(
-                    'Your Rights',
-                    'You have the right to access, correct, or delete your personal information. You can also opt-out of marketing communications and request data portability. Contact our support team for assistance.',
-                  ),
-                  _buildPolicySection(
-                    'Updates to This Policy',
-                    'We may update this privacy policy from time to time. We will notify you of significant changes through our platform or via email. Continued use of our services constitutes acceptance of the updated policy.',
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPolicySection(String title, String content) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Color(0xFF004799),
-            ),
+            'Get in Touch',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
           Text(
-            content,
-            style: TextStyle(
-              height: 1.6,
-              color: Colors.grey[700],
-              fontSize: 14,
-            ),
+            'We\'d love to hear from you',
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 24),
+          const _ContactInfo(
+            icon: Icons.email,
+            title: 'Email',
+            value: 'contact@premisave.co.ke',
+          ),
+          const SizedBox(height: 16),
+          const _ContactInfo(
+            icon: Icons.phone,
+            title: 'Phone',
+            value: '+254 700 123 456',
+          ),
+          const SizedBox(height: 16),
+          const _ContactInfo(
+            icon: Icons.location_on,
+            title: 'Address',
+            value: 'Nairobi, Kenya',
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ContactInfo extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+
+  const _ContactInfo({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Icon(icon, color: Colors.green),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
