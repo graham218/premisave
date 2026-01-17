@@ -11,6 +11,7 @@ import 'contents/client_bookings_content.dart';
 import 'contents/client_wishlists_content.dart';
 import 'contents/client_payments_content.dart';
 import 'contents/client_messages_content.dart';
+import 'contents/client_transactions_content.dart';
 
 class ClientDashboard extends ConsumerStatefulWidget {
   const ClientDashboard({super.key});
@@ -21,14 +22,15 @@ class ClientDashboard extends ConsumerStatefulWidget {
 
 class _ClientDashboardState extends ConsumerState<ClientDashboard> {
   int _selectedIndex = 0;
-  String _currentRoute = '/client/explore'; // Changed to /client/explore
+  String _currentRoute = '/client/explore';
 
   final List<Map<String, dynamic>> _menuItems = [
     {'icon': Icons.search, 'label': 'Explore', 'route': '/client/explore'},
-    {'icon': Icons.home, 'label': 'Home', 'route': '/dashboard/client'}, // Home tab
+    {'icon': Icons.home, 'label': 'Home', 'route': '/dashboard/client'},
     {'icon': Icons.calendar_month, 'label': 'Bookings', 'route': '/client/bookings'},
     {'icon': Icons.favorite_border, 'label': 'Wishlists', 'route': '/client/wishlists'},
     {'icon': Icons.payments, 'label': 'Payments', 'route': '/client/payments'},
+    {'icon': Icons.receipt_long, 'label': 'Transactions', 'route': '/client/transactions'},
     {'icon': Icons.message, 'label': 'Messages', 'route': '/client/messages'},
   ];
 
@@ -48,6 +50,8 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
         return const ClientWishlistsContent();
       case '/client/payments':
         return const ClientPaymentsContent();
+      case '/client/transactions':
+        return const ClientTransactionsContent();
       case '/client/messages':
         return const ClientMessagesContent();
       case '/client/about':
@@ -87,58 +91,12 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
       backgroundColor: Colors.white,
       elevation: 0.5,
       surfaceTintColor: Colors.white,
-      leadingWidth: 180,
-      leading: Padding(
-        padding: const EdgeInsets.only(left: 24),
-        child: GestureDetector(
-          onTap: () => _navigateToRoute('/dashboard/client'),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Premisave Logo
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00A699),
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00A699).withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Text(
-                    'P',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Circular',
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Premisave',
-                style: TextStyle(
-                  color: Color(0xFF00A699),
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Circular',
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      leadingWidth: isMobile ? 180 : null,
+      leading: isMobile ? _buildLogo() : null,
+      centerTitle: !isMobile,
       title: !isMobile ? _buildDesktopNavigation() : null,
       actions: [
+        if (!isMobile) _buildLogo(),
         if (!isMobile)
           _buildLanguageCurrencySelector(),
         _buildProfileMenu(context, currentUser, authNotifier),
@@ -146,7 +104,63 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
     );
   }
 
+  Widget _buildLogo() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 24),
+      child: GestureDetector(
+        onTap: () => _navigateToRoute('/dashboard/client'),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF00A699),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF00A699).withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Text(
+                  'P',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Circular',
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Premisave',
+              style: TextStyle(
+                color: Color(0xFF00A699),
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Circular',
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDesktopNavigation() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final maxVisibleItems = screenWidth < 1200 ? 5 : _menuItems.length;
+    final visibleItems = _menuItems.take(maxVisibleItems).toList();
+    final hasMoreItems = _menuItems.length > maxVisibleItems;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
@@ -157,14 +171,53 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (int i = 0; i < 4; i++) // Show first 4 items on desktop
+          for (int i = 0; i < visibleItems.length; i++)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: _NavButton(
-                icon: _menuItems[i]['icon'],
-                label: _menuItems[i]['label'],
+                icon: visibleItems[i]['icon'],
+                label: visibleItems[i]['label'],
                 isActive: _selectedIndex == i,
-                onPressed: () => _navigateToRoute(_menuItems[i]['route']),
+                onPressed: () => _navigateToRoute(visibleItems[i]['route']),
+              ),
+            ),
+          if (hasMoreItems)
+            PopupMenuButton<String>(
+              offset: const Offset(0, 50),
+              itemBuilder: (context) {
+                final hiddenItems = _menuItems.sublist(maxVisibleItems);
+                return hiddenItems.map<PopupMenuEntry<String>>((item) {
+                  final index = _menuItems.indexOf(item);
+                  return PopupMenuItem<String>(
+                    value: item['route'],
+                    child: Row(
+                      children: [
+                        Icon(item['icon'], size: 20),
+                        const SizedBox(width: 12),
+                        Text(item['label']),
+                      ],
+                    ),
+                    onTap: () => _navigateToRoute(item['route']),
+                  );
+                }).toList();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.more_horiz, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'More',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
@@ -189,10 +242,10 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
         ),
       ),
       itemBuilder: (context) => [
-        const PopupMenuItem(value: 'en', child: Text('English')),
-        const PopupMenuItem(value: 'sw', child: Text('Swahili')),
-        const PopupMenuItem(value: 'kes', child: Text('KES - Kenyan Shilling')),
-        const PopupMenuItem(value: 'usd', child: Text('USD - US Dollar')),
+        const PopupMenuItem<String>(value: 'en', child: Text('English')),
+        const PopupMenuItem<String>(value: 'sw', child: Text('Swahili')),
+        const PopupMenuItem<String>(value: 'kes', child: Text('KES - Kenyan Shilling')),
+        const PopupMenuItem<String>(value: 'usd', child: Text('USD - US Dollar')),
       ],
     );
   }
@@ -201,9 +254,8 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
     return PopupMenuButton<String>(
       offset: const Offset(0, 50),
       onSelected: (value) {
-        // Handle profile menu selections
         if (value == 'profile') {
-          context.push('/profile'); // Make sure you have this route in your GoRouter config
+          context.push('/profile');
         } else if (value == 'account') {
           context.push('/client/account');
         } else if (value == 'help') {
@@ -215,11 +267,10 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
         }
       },
       itemBuilder: (context) => [
-        PopupMenuItem(
+        PopupMenuItem<String>(
           value: 'profile',
           child: Row(
             children: [
-              // Profile Picture with fallback to initials
               if (currentUser?.profilePictureUrl?.isNotEmpty ?? false)
                 Container(
                   width: 32,
@@ -298,24 +349,24 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
           ),
         ),
         const PopupMenuDivider(),
-        const PopupMenuItem(
+        const PopupMenuItem<String>(
           value: 'account',
           child: ListTile(leading: Icon(Icons.settings), title: Text('Account settings')),
         ),
-        const PopupMenuItem(
+        const PopupMenuItem<String>(
           value: 'help',
           child: ListTile(leading: Icon(Icons.help), title: Text('Help Center')),
         ),
-        const PopupMenuItem(
+        const PopupMenuItem<String>(
           value: 'about',
           child: ListTile(leading: Icon(Icons.info), title: Text('About Premisave')),
         ),
-        const PopupMenuItem(
+        const PopupMenuItem<String>(
           value: 'contact',
           child: ListTile(leading: Icon(Icons.contact_support), title: Text('Contact Us')),
         ),
         const PopupMenuDivider(),
-        PopupMenuItem(
+        PopupMenuItem<String>(
           value: 'logout',
           child: ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
@@ -335,7 +386,6 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
           children: [
             const Icon(Icons.menu, color: Colors.grey),
             const SizedBox(width: 8),
-            // Profile picture or initials in the menu button
             if (currentUser?.profilePictureUrl?.isNotEmpty ?? false)
               Container(
                 width: 32,
@@ -403,11 +453,18 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
   }
 
   Widget _buildBottomNavigationBar() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final maxVisibleItems = screenWidth < 400 ? 4 : 5;
+    final visibleItems = _menuItems.take(maxVisibleItems).toList();
+    final hasMoreItems = _menuItems.length > maxVisibleItems;
+
     return BottomNavigationBar(
-      currentIndex: _selectedIndex.clamp(0, 3),
+      currentIndex: _selectedIndex.clamp(0, maxVisibleItems - 1),
       onTap: (index) {
-        if (index < 4) {
-          _navigateToRoute(_menuItems[index]['route']);
+        if (index < visibleItems.length) {
+          _navigateToRoute(visibleItems[index]['route']);
+        } else if (hasMoreItems && index == visibleItems.length) {
+          _showMoreMenu(context);
         }
       },
       type: BottomNavigationBarType.fixed,
@@ -416,24 +473,64 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
       unselectedItemColor: Colors.grey[600],
       selectedFontSize: 12,
       unselectedFontSize: 12,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.search),
-          label: 'Explore',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month),
-          label: 'Bookings',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.favorite_border),
-          label: 'Wishlists',
-        ),
+      items: [
+        for (int i = 0; i < visibleItems.length; i++)
+          BottomNavigationBarItem(
+            icon: Icon(visibleItems[i]['icon']),
+            label: visibleItems[i]['label'],
+          ),
+        if (hasMoreItems)
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.more_horiz),
+            label: 'More',
+          ),
       ],
+    );
+  }
+
+  void _showMoreMenu(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final maxVisibleItems = screenWidth < 400 ? 4 : 5;
+    final hiddenItems = _menuItems.sublist(maxVisibleItems);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'More Options',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ),
+              ...hiddenItems.map((item) {
+                final index = _menuItems.indexOf(item);
+                return ListTile(
+                  leading: Icon(item['icon'], color: Colors.grey[700]),
+                  title: Text(item['label']),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _navigateToRoute(item['route']);
+                  },
+                  tileColor: _selectedIndex == index ? const Color(0xFF00A699).withOpacity(0.1) : null,
+                );
+              }),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
     );
   }
 }

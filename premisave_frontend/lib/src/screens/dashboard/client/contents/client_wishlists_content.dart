@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'widgets/client_explore/property_details_dialog.dart';
 
 class ClientWishlistsContent extends StatelessWidget {
   const ClientWishlistsContent({super.key});
@@ -10,24 +11,24 @@ class ClientWishlistsContent extends StatelessWidget {
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _HeaderSection(),
-          const SizedBox(height: 24),
-          const _WishlistStats(),
-          const SizedBox(height: 24),
-          const _WishlistSection(
+          _HeaderSection(),
+          SizedBox(height: 24),
+          _WishlistStats(),
+          SizedBox(height: 24),
+          _WishlistSection(
             title: 'Beachfront Properties',
             properties: _beachfrontWishlist,
           ),
-          const SizedBox(height: 24),
-          const _WishlistSection(
+          SizedBox(height: 24),
+          _WishlistSection(
             title: 'Mountain Getaways',
             properties: _mountainWishlist,
           ),
-          const SizedBox(height: 24),
-          const _WishlistSection(
+          SizedBox(height: 24),
+          _WishlistSection(
             title: 'City Apartments',
             properties: _cityWishlist,
           ),
@@ -212,7 +213,14 @@ class _WishlistSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
-    final crossAxisCount = isSmallScreen ? 2 : 3;
+    final isLargeScreen = screenWidth > 1200;
+
+    // Dynamic grid columns based on screen size
+    final crossAxisCount = isSmallScreen
+        ? 1  // Single column on small screens
+        : isLargeScreen
+        ? 4  // 4 columns on very large screens
+        : 2; // 2 columns on medium screens
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,156 +257,224 @@ class _WishlistSection extends StatelessWidget {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 0.85,
+            childAspectRatio: _calculateAspectRatio(screenWidth),
           ),
           itemCount: properties.length,
-          itemBuilder: (context, index) => _WishlistPropertyCard(property: properties[index]),
+          itemBuilder: (context, index) => _WishlistPropertyCard(
+            property: properties[index],
+            onTap: () => _showPropertyDetails(context, properties[index]),
+          ),
         ),
       ],
     );
+  }
+
+  // Calculate dynamic aspect ratio for responsive cards
+  double _calculateAspectRatio(double screenWidth) {
+    if (screenWidth < 600) {
+      return 0.75; // Taller cards on small screens
+    } else if (screenWidth > 1200) {
+      return 0.9; // Wider cards on large screens
+    } else {
+      return 0.85; // Balanced on medium screens
+    }
+  }
+
+  void _showPropertyDetails(BuildContext context, Map<String, dynamic> property) {
+    // Enhanced property data for the dialog
+    final enhancedProperty = Map<String, dynamic>.from(property)
+      ..addAll({
+        'dailyPrice': property['price'].replaceAll('/night', '').trim(),
+        'monthlyPrice': '${_calculateMonthlyPrice(property['price'])} / month',
+      });
+
+    showDialog(
+      context: context,
+      builder: (context) => PropertyDetailsDialog(
+        property: enhancedProperty,
+        rentalType: 'daily', // Default to daily rental
+      ),
+    );
+  }
+
+  String _calculateMonthlyPrice(String dailyPrice) {
+    // Extract numeric value from price string
+    final priceMatch = RegExp(r'KSh\s*([\d,]+)').firstMatch(dailyPrice);
+    if (priceMatch != null) {
+      final priceStr = priceMatch.group(1)!.replaceAll(',', '');
+      final price = double.tryParse(priceStr) ?? 0;
+      final monthlyPrice = (price * 30).toInt();
+      return 'KSh ${monthlyPrice.toStringAsFixed(0).replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+            (Match m) => '${m[1]},',
+      )}';
+    }
+    return 'KSh 0';
   }
 }
 
 class _WishlistPropertyCard extends StatelessWidget {
   final Map<String, dynamic> property;
+  final VoidCallback onTap;
 
-  const _WishlistPropertyCard({required this.property});
+  const _WishlistPropertyCard({
+    required this.property,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: NetworkImage(property['image']),
-                      fit: BoxFit.cover,
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image section
+            AspectRatio(
+              aspectRatio: 16 / 9, // Consistent aspect ratio for all cards
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: NetworkImage(property['image']),
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.favorite,
-                      size: 18,
-                      color: Colors.pink,
-                    ),
-                  ),
-                ),
-                if (property['badge'] != null)
                   Positioned(
                     top: 12,
-                    left: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        property['badge'],
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    right: 12,
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        Icons.favorite,
+                        size: 18,
+                        color: Colors.pink,
                       ),
                     ),
                   ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        property['title'],
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                  if (property['badge'] != null)
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        child: Text(
+                          property['badge'],
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ),
-                    Row(
+                ],
+              ),
+            ),
+
+            // Content section
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.star, size: 14, color: Colors.amber[600]),
-                        const SizedBox(width: 4),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                property['title'],
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Icon(Icons.star, size: 14, color: Colors.amber[600]),
+                                const SizedBox(width: 4),
+                                Text(
+                                  property['rating'].toString(),
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
                         Text(
-                          property['rating'].toString(),
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          property['location'],
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  property['location'],
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        property['type'],
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[700],
+
+                    // Bottom row with type and price
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            property['type'],
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[700],
+                            ),
+                          ),
                         ),
-                      ),
+                        const Spacer(),
+                        Flexible(
+                          child: Text(
+                            property['price'],
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.green,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
-                    const Spacer(),
-                    Text(
-                      property['price'],
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
+
+                    // Action buttons (now only one primary button for cleaner UI)
+                    SizedBox(
+                      width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: onTap,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.green,
                           side: const BorderSide(color: Colors.green),
@@ -407,24 +483,15 @@ class _WishlistPropertyCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: const Text('Book Now', style: TextStyle(fontSize: 13)),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.grey[100],
-                        padding: const EdgeInsets.all(8),
+                        child: const Text('View Details', style: TextStyle(fontSize: 13)),
                       ),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -436,7 +503,7 @@ const List<Map<String, dynamic>> _beachfrontWishlist = [
     'image': 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=400&auto=format&fit=crop',
     'title': 'Ocean View Villa',
     'location': 'Diani Beach',
-    'price': 'KSh 25,000/night',
+    'price': 'KSh 25,000 / night',
     'rating': 4.88,
     'type': 'Villa',
     'badge': 'Beachfront',
@@ -445,7 +512,7 @@ const List<Map<String, dynamic>> _beachfrontWishlist = [
     'image': 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&auto=format&fit=crop',
     'title': 'Beach House',
     'location': 'Mombasa',
-    'price': 'KSh 18,000/night',
+    'price': 'KSh 18,000 / night',
     'rating': 4.75,
     'type': 'House',
     'badge': 'Luxury',
@@ -457,7 +524,7 @@ const List<Map<String, dynamic>> _mountainWishlist = [
     'image': 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&auto=format&fit=crop',
     'title': 'Mountain Cabin',
     'location': 'Mount Kenya',
-    'price': 'KSh 12,000/night',
+    'price': 'KSh 12,000 / night',
     'rating': 4.95,
     'type': 'Cabin',
     'badge': 'Popular',
@@ -466,7 +533,7 @@ const List<Map<String, dynamic>> _mountainWishlist = [
     'image': 'https://images.unsplash.com/photo-1513584684374-8bab748fbf90?w=400&auto=format&fit=crop',
     'title': 'Forest Retreat',
     'location': 'Aberdare',
-    'price': 'KSh 9,500/night',
+    'price': 'KSh 9,500 / night',
     'rating': 4.82,
     'type': 'Retreat',
     'badge': 'Eco',
@@ -475,7 +542,7 @@ const List<Map<String, dynamic>> _mountainWishlist = [
     'image': 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&auto=format&fit=crop',
     'title': 'Hiking Lodge',
     'location': 'Samburu',
-    'price': 'KSh 14,000/night',
+    'price': 'KSh 14,000 / night',
     'rating': 4.90,
     'type': 'Lodge',
     'badge': 'Adventure',
@@ -487,7 +554,7 @@ const List<Map<String, dynamic>> _cityWishlist = [
     'image': 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400&auto=format&fit=crop',
     'title': 'Modern Apartment',
     'location': 'Nairobi CBD',
-    'price': 'KSh 8,500/night',
+    'price': 'KSh 8,500 / night',
     'rating': 4.92,
     'type': 'Apartment',
     'badge': 'Guest Favorite',
@@ -496,7 +563,7 @@ const List<Map<String, dynamic>> _cityWishlist = [
     'image': 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=400&auto=format&fit=crop',
     'title': 'City Studio',
     'location': 'Westlands',
-    'price': 'KSh 6,500/night',
+    'price': 'KSh 6,500 / night',
     'rating': 4.75,
     'type': 'Studio',
     'badge': 'Modern',
@@ -505,7 +572,7 @@ const List<Map<String, dynamic>> _cityWishlist = [
     'image': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&auto=format&fit=crop',
     'title': 'Penthouse Loft',
     'location': 'Kilimani',
-    'price': 'KSh 15,000/night',
+    'price': 'KSh 15,000 / night',
     'rating': 4.89,
     'type': 'Loft',
     'badge': 'Luxury',
