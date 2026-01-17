@@ -1,10 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../providers/auth/auth_provider.dart';
 import 'widgets/edit_profile_form.dart';
 import 'widgets/profile_completion_bar.dart';
@@ -30,37 +28,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    // Show image source options
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take Photo'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (source == null) return;
-
-    // Handle permissions
-    bool hasPermission = await _checkAndRequestPermission(source);
-    if (!hasPermission) return;
-
     try {
       final picked = await _picker.pickImage(
-        source: source,
+        source: ImageSource.gallery,
         imageQuality: 85,
         maxWidth: 800,
         maxHeight: 800,
@@ -69,7 +39,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (picked != null) {
         setState(() => _isUploading = true);
 
-        // Show uploading indicator
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -88,14 +57,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         try {
           await ref.read(authProvider.notifier).uploadProfilePicture(picked);
           if (context.mounted) {
-            Navigator.pop(context); // Close loading dialog
+            Navigator.pop(context);
             _refreshProfile();
           }
         } catch (e) {
-          if (context.mounted) {
-            Navigator.pop(context); // Close loading dialog
-            // Error is already shown by the provider
-          }
+          if (context.mounted) Navigator.pop(context);
         } finally {
           setState(() => _isUploading = false);
         }
@@ -112,112 +78,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  Future<bool> _checkAndRequestPermission(ImageSource source) async {
-    if (source == ImageSource.camera) {
-      // Check camera permission
-      PermissionStatus cameraStatus = await Permission.camera.status;
-
-      if (cameraStatus.isPermanentlyDenied) {
-        if (context.mounted) {
-          await showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Camera Permission Required'),
-              content: const Text('Please enable camera permission in app settings to take photos.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    openAppSettings();
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Open Settings'),
-                ),
-              ],
-            ),
-          );
-        }
-        return false;
-      }
-
-      if (!cameraStatus.isGranted) {
-        cameraStatus = await Permission.camera.request();
-        if (!cameraStatus.isGranted) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Camera permission is required to take photos'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          return false;
-        }
-      }
-    } else if (source == ImageSource.gallery) {
-      // For gallery, permissions work differently on iOS and Android
-      PermissionStatus photosStatus;
-
-      // On iOS, use photos permission
-      // On Android, use storage permission for older versions
-      if (defaultTargetPlatform == TargetPlatform.iOS) {
-        photosStatus = await Permission.photos.status;
-
-        if (photosStatus.isPermanentlyDenied) {
-          if (context.mounted) {
-            await showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Photo Library Permission Required'),
-                content: const Text('Please enable photo library permission in app settings to choose photos.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      openAppSettings();
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Open Settings'),
-                  ),
-                ],
-              ),
-            );
-          }
-          return false;
-        }
-
-        if (!photosStatus.isGranted) {
-          photosStatus = await Permission.photos.request();
-        }
-      } else {
-        // For Android, check storage permission
-        photosStatus = await Permission.storage.status;
-
-        if (!photosStatus.isGranted) {
-          photosStatus = await Permission.storage.request();
-        }
-      }
-
-      if (!photosStatus.isGranted) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Permission is required to access photos'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return false;
-      }
-    }
-
-    return true;
+  void _showImagePickerDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Profile Picture'),
+        content: const Text('Choose an image from your gallery.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _pickImage();
+            },
+            child: const Text('Choose from Gallery'),
+          ),
+        ],
+      ),
+    );
   }
 
   double _calculateProfileCompletion(user) {
@@ -389,38 +270,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.08), blurRadius: 24)],
+        boxShadow: [BoxShadow(color: theme.colorScheme.primary.withOpacity(0.08), blurRadius: 24)],
       ),
       child: Column(children: [
-        Stack(
-          alignment: Alignment.bottomRight,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: theme.colorScheme.background,
-                boxShadow: [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.2), blurRadius: 16)],
+        GestureDetector(
+          onTap: _isUploading ? null : _showImagePickerDialog,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.background,
+                  boxShadow: [BoxShadow(color: theme.colorScheme.primary.withOpacity(0.2), blurRadius: 16)],
+                ),
+                child: UserAvatar(
+                  imageUrl: user.profilePictureUrl.isNotEmpty ? user.profilePictureUrl : null,
+                  radius: isLargeScreen ? 70 : 56,
+                  onTap: null,
+                ),
               ),
-              child: UserAvatar(
-                imageUrl: user.profilePictureUrl.isNotEmpty ? user.profilePictureUrl : null,
-                radius: isLargeScreen ? 70 : 56,
-                onTap: _isUploading ? null : _pickImage,
-              ),
-            ),
-            if (!_isUploading)
-              GestureDetector(
-                onTap: _pickImage,
+              Positioned(
+                bottom: 0,
+                right: 0,
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.3), blurRadius: 8)],
+                    boxShadow: [BoxShadow(color: theme.colorScheme.primary.withOpacity(0.3), blurRadius: 8)],
                   ),
-                  child: Icon(Icons.edit_rounded, color: theme.colorScheme.onPrimary, size: 18),
+                  child: Icon(Icons.camera_alt_rounded, color: theme.colorScheme.onPrimary, size: 18),
                 ),
               ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 20),
         Text(
@@ -436,7 +320,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.5),
+            color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(children: [
@@ -474,7 +358,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    color: theme.colorScheme.primary.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.analytics_rounded, color: theme.colorScheme.primary, size: 22),
@@ -489,7 +373,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('${completionPercentage.toInt()}% Complete', style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                Text('${completionPercentage.toInt()}% Complete', style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface.withOpacity(0.6))),
                 if (completionPercentage < 100)
                   TextButton(
                     onPressed: () => _showEditProfileDialog(context, user),
@@ -542,7 +426,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             color: theme.cardColor,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: theme.shadowColor.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))],
+            boxShadow: [BoxShadow(color: theme.shadowColor.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -550,7 +434,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
                   child: Icon(icon, color: color, size: 24),
                 ),
                 const SizedBox(width: 16),
@@ -560,11 +444,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: theme.colorScheme.onSurface)),
                       const SizedBox(height: 4),
-                      Text(subtitle, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                      Text(subtitle, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.6))),
                     ],
                   ),
                 ),
-                Icon(Icons.arrow_forward_ios_rounded, color: theme.colorScheme.onSurface.withValues(alpha: 0.4), size: 16),
+                Icon(Icons.arrow_forward_ios_rounded, color: theme.colorScheme.onSurface.withOpacity(0.4), size: 16),
               ],
             ),
           ),
@@ -607,9 +491,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
+            color: color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
+            border: Border.all(color: color.withOpacity(0.2)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
