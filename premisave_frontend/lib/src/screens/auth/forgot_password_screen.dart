@@ -9,7 +9,6 @@ class ForgotPasswordScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final authNotifier = ref.read(authProvider.notifier);
     final emailController = TextEditingController();
 
     final isLargeScreen = MediaQuery.of(context).size.width > 700;
@@ -29,13 +28,13 @@ class ForgotPasswordScreen extends ConsumerWidget {
             context,
             authState.isLoading,
             emailController,
-            authNotifier,
+            ref,
           )
               : _buildMobileLayout(
             context,
             authState.isLoading,
             emailController,
-            authNotifier,
+            ref,
           ),
         ),
       ),
@@ -46,7 +45,7 @@ class ForgotPasswordScreen extends ConsumerWidget {
       BuildContext context,
       bool isLoading,
       TextEditingController emailController,
-      AuthNotifier authNotifier,
+      WidgetRef ref,
       ) {
     return Container(
       constraints: const BoxConstraints(maxWidth: 850, maxHeight: 500),
@@ -111,6 +110,7 @@ class ForgotPasswordScreen extends ConsumerWidget {
                         isLoading,
                         emailController,
                         context,
+                        ref,
                       ),
                     ),
                   ),
@@ -129,7 +129,7 @@ class ForgotPasswordScreen extends ConsumerWidget {
       BuildContext context,
       bool isLoading,
       TextEditingController emailController,
-      AuthNotifier authNotifier,
+      WidgetRef ref,
       ) {
     return SingleChildScrollView(
       child: Container(
@@ -165,6 +165,7 @@ class ForgotPasswordScreen extends ConsumerWidget {
               isLoading,
               emailController,
               context,
+              ref,
             ),
             const SizedBox(height: 16),
             _buildBackToLoginLink(isLoading, context),
@@ -178,6 +179,7 @@ class ForgotPasswordScreen extends ConsumerWidget {
       bool isLoading,
       TextEditingController emailController,
       BuildContext context,
+      WidgetRef ref,
       ) {
     return Column(
       children: [
@@ -298,27 +300,47 @@ class ForgotPasswordScreen extends ConsumerWidget {
                 ? null
                 : () async {
               FocusScope.of(context).unfocus();
+              final email = emailController.text.trim();
 
-              if (emailController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter your email address'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+              if (email.isEmpty) {
+                _showSnackBar(context, 'Please enter your email address', Colors.red);
                 return;
               }
 
-              // Note: authNotifier would need to be passed here
-              // For now, showing success message
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Password reset link sent to your email'),
-                  backgroundColor: Color(0xFF0A2463),
-                ),
-              );
+              // Validate email format
+              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+                _showSnackBar(context, 'Please enter a valid email address', Colors.red);
+                return;
+              }
 
-              context.go('/login');
+              try {
+                // Call the forgotPassword method from auth provider
+                await ref.read(authProvider.notifier).forgotPassword(email);
+
+                // Show success message
+                _showSnackBar(
+                  context,
+                  'Password reset link sent to your email',
+                  const Color(0xFF0A2463),
+                );
+
+                // Clear the email field
+                emailController.clear();
+
+                // Navigate back to login after a short delay
+                await Future.delayed(const Duration(seconds: 2));
+                if (context.mounted) {
+                  context.go('/login');
+                }
+              } catch (e) {
+                // Error is already shown by the provider via ToastUtils
+                // You can also show a snackbar here if needed
+                _showSnackBar(
+                  context,
+                  'Failed to send reset link. Please try again.',
+                  Colors.red,
+                );
+              }
             },
           ),
         ),
@@ -343,6 +365,17 @@ class ForgotPasswordScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  void _showSnackBar(BuildContext context, String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 }
