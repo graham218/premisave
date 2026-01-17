@@ -200,25 +200,53 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 
   Future<void> verifyAccount(String token) async {
+    print('DEBUG: Starting verification for token: $token');
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _dio.get('/auth/verify/$token');
-      ToastUtils.showSuccessToast('Account verified successfully!');
-      state = state.copyWith(isLoading: false, shouldRedirectToLogin: true);
+      print('DEBUG: Making API call to /auth/verify/$token');
+
+      // Use ResponseType.plain since backend returns plain text
+      final response = await _dio.get(
+        '/auth/verify/$token',
+        options: Options(responseType: ResponseType.plain),
+      );
+
+      print('DEBUG: API Response status: ${response.statusCode}');
+      print('DEBUG: API Response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        ToastUtils.showSuccessToast('Account verified successfully! You can now login.');
+        state = state.copyWith(
+          isLoading: false,
+          shouldRedirectToLogin: true,
+        );
+        print('DEBUG: Verification successful');
+      }
     } on DioException catch (e) {
+      print('DEBUG: DioException during verification: $e');
+      print('DEBUG: Response status: ${e.response?.statusCode}');
+      print('DEBUG: Response data: ${e.response?.data}');
+
       String errorMessage = 'Verification failed';
 
       if (e.response?.statusCode == 404) {
-        errorMessage = 'Invalid or expired verification token';
+        errorMessage = 'Invalid or expired verification link';
       } else if (e.response?.statusCode == 400) {
         errorMessage = 'Account already verified';
       } else {
-        errorMessage = _getUserFriendlyErrorMessage(e);
+        // Try to extract error message from plain text response
+        final responseData = e.response?.data;
+        if (responseData is String && responseData.isNotEmpty) {
+          errorMessage = responseData;
+        } else {
+          errorMessage = _getUserFriendlyErrorMessage(e);
+        }
       }
 
       ToastUtils.showErrorToast(errorMessage);
       state = state.copyWith(error: errorMessage, isLoading: false);
     } catch (e) {
+      print('DEBUG: General exception during verification: $e');
       ToastUtils.showErrorToast('An unexpected error occurred');
       state = state.copyWith(error: 'An unexpected error occurred', isLoading: false);
     }
