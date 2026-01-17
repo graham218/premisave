@@ -1,46 +1,121 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../providers/auth/auth_provider.dart';
+import '../../config/app_config.dart';
 import '../../utils/toast_utils.dart';
 import '../public/contact_content.dart';
 
-class VerifyScreen extends ConsumerStatefulWidget {
+class VerifyScreen extends StatefulWidget {
   final String? verificationToken;
 
   const VerifyScreen({super.key, this.verificationToken});
 
   @override
-  ConsumerState<VerifyScreen> createState() => _VerifyScreenState();
+  State<VerifyScreen> createState() => _VerifyScreenState();
 }
 
-class _VerifyScreenState extends ConsumerState<VerifyScreen> {
+class _VerifyScreenState extends State<VerifyScreen> {
+  final Dio _dio = Dio(BaseOptions(baseUrl: AppConfig.baseUrl));
   final TextEditingController _emailController = TextEditingController();
-  bool _hasVerified = false;
-  bool _verificationAttempted = false;
+  bool _isLoading = false;
+  bool _isVerified = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    print('SCREEN: VerifyScreen init with token: ${widget.verificationToken}');
+    print('DEBUG: VerifyScreen init with token: ${widget.verificationToken}');
 
     if (widget.verificationToken != null) {
+      _testBackendConnection();
       _verifyToken();
     }
   }
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
+  Future<void> _verifyToken() async {
+    if (_isLoading) return;
+
+    print('DEBUG: Starting verification...');
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      print('DEBUG: Calling backend: ${AppConfig.baseUrl}/auth/verify/${widget.verificationToken}');
+
+      final response = await _dio.get(
+        '/auth/verify/${widget.verificationToken}',
+        options: Options(responseType: ResponseType.plain),
+      );
+
+      print('DEBUG: Response status: ${response.statusCode}');
+      print('DEBUG: Response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        print('DEBUG: Verification successful!');
+        ToastUtils.showSuccessToast('Account verified successfully!');
+        setState(() {
+          _isVerified = true;
+          _isLoading = false;
+        });
+
+        // Wait 2 seconds then redirect
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          print('DEBUG: Redirecting to login...');
+          context.go('/login');
+        }
+      }
+    } on DioException catch (e) {
+      print('DEBUG: DioException: ${e.message}');
+      print('DEBUG: Status code: ${e.response?.statusCode}');
+      print('DEBUG: Response data: ${e.response?.data}');
+
+      String errorMessage = 'Verification failed';
+
+      if (e.response?.statusCode == 404) {
+        errorMessage = 'Invalid or expired verification link';
+      } else if (e.response?.statusCode == 400) {
+        errorMessage = 'Account already verified';
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        errorMessage = 'Connection timeout. Please check your internet.';
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = 'Cannot connect to server. Please try again later.';
+      }
+
+      print('DEBUG: Setting error: $errorMessage');
+      setState(() {
+        _error = errorMessage;
+        _isLoading = false;
+      });
+
+      ToastUtils.showErrorToast(errorMessage);
+    } catch (e) {
+      print('DEBUG: General exception: $e');
+      setState(() {
+        _error = 'An unexpected error occurred';
+        _isLoading = false;
+      });
+      ToastUtils.showErrorToast('An unexpected error occurred');
+    }
   }
 
-  Future<void> _verifyToken() async {
-    print('SCREEN: Starting verification via provider');
-    setState(() => _verificationAttempted = true);
-
-    final notifier = ref.read(authProvider.notifier);
-    await notifier.verifyAccount(widget.verificationToken!);
+  Future<void> _testBackendConnection() async {
+    print('DEBUG: Testing backend connection to ${AppConfig.baseUrl}');
+    try {
+      final response = await _dio.get('/auth/test');
+      print('DEBUG: Backend is reachable: ${response.statusCode}');
+    } catch (e) {
+      print('DEBUG: Cannot reach backend: $e');
+      // Try with a direct ping
+      try {
+        final response = await _dio.get('http://localhost:8080');
+        print('DEBUG: Direct ping to localhost:8080: ${response.statusCode}');
+      } catch (e2) {
+        print('DEBUG: Cannot even ping localhost: $e2');
+      }
+    }
   }
 
   Future<void> _resendActivation() async {
@@ -56,12 +131,23 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       return;
     }
 
-    final notifier = ref.read(authProvider.notifier);
-    await notifier.resendActivation(email);
-
-    // Clear the email field after successful resend
-    if (ref.read(authProvider).error == null) {
-      _emailController.clear();
+    setState(() => _isLoading = true);
+    try {
+      await _dio.post(
+        '/auth/resend-activation/$email',
+        options: Options(responseType: ResponseType.plain),
+      );
+      ToastUtils.showSuccessToast('Activation email resent! Check your inbox.');
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to resend activation email';
+      if (e.response?.statusCode == 404) {
+        errorMessage = 'No account found with this email';
+      } else if (e.response?.statusCode == 400) {
+        errorMessage = 'Account already verified';
+      }
+      ToastUtils.showErrorToast(errorMessage);
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -70,9 +156,9 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Contact Support'),
-        content: SizedBox(
+        content: const SizedBox(
           width: double.maxFinite,
-          child: const ContactContent(),
+          child: ContactContent(),
         ),
         actions: [
           TextButton(
@@ -86,30 +172,9 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
     final isLargeScreen = MediaQuery.of(context).size.width > 700;
 
-    print('SCREEN: Building widget. isLoading: ${authState.isLoading}, error: ${authState.error}, shouldRedirect: ${authState.shouldRedirectToLogin}');
-
-    // Handle successful verification
-    if (_verificationAttempted &&
-        !authState.isLoading &&
-        authState.shouldRedirectToLogin &&
-        !_hasVerified) {
-      print('SCREEN: Verification successful, showing success UI');
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setState(() => _hasVerified = true);
-        ToastUtils.showSuccessToast('Account verified successfully!');
-
-        // Redirect after delay
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            print('SCREEN: Redirecting to login');
-            context.go('/login');
-          }
-        });
-      });
-    }
+    print('DEBUG: Building widget. isLoading: $_isLoading, isVerified: $_isVerified, error: $_error');
 
     return Scaffold(
       body: Container(
@@ -133,7 +198,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
                   BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 6)),
                 ],
               ),
-              child: _buildContent(authState),
+              child: _buildContent(),
             ),
           ),
         ),
@@ -141,10 +206,10 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     );
   }
 
-  Widget _buildContent(AuthState authState) {
+  Widget _buildContent() {
     // If token is provided, show verification status
     if (widget.verificationToken != null) {
-      if (authState.isLoading && _verificationAttempted) {
+      if (_isLoading) {
         return const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -155,7 +220,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
         );
       }
 
-      if (_hasVerified) {
+      if (_isVerified) {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -180,7 +245,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
         );
       }
 
-      if (authState.error != null && _verificationAttempted) {
+      if (_error != null) {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -192,12 +257,12 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              authState.error!,
+              _error!,
               style: const TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 30),
-            _buildResendForm(authState),
+            _buildResendForm(),
           ],
         );
       }
@@ -214,20 +279,18 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0A2463)),
         ),
         const SizedBox(height: 10),
-        Text(
-          widget.verificationToken != null
-              ? 'Enter your email to resend the verification link'
-              : 'Check your email for the verification link',
-          style: const TextStyle(color: Colors.black54),
+        const Text(
+          'Enter your email to resend the verification link',
+          style: TextStyle(color: Colors.black54),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 30),
-        _buildResendForm(authState),
+        _buildResendForm(),
       ],
     );
   }
 
-  Widget _buildResendForm(AuthState authState) {
+  Widget _buildResendForm() {
     return Column(
       children: [
         TextField(
@@ -244,7 +307,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
         ),
         const SizedBox(height: 20),
 
-        authState.isLoading
+        _isLoading
             ? const CircularProgressIndicator(color: Color(0xFF0A2463))
             : ElevatedButton.icon(
           icon: const Icon(Icons.email, color: Colors.white),
