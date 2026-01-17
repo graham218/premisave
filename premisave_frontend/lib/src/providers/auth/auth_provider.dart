@@ -174,97 +174,121 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
 
-  Future<void> verifyEmailToken(String verificationToken) async {
-    state = state.copyWith(isLoading: true, error: null);
+  Future<bool> verifyEmailToken(String verificationToken) async {
     try {
-      print('DEBUG: Calling backend: /auth/verify/$verificationToken');
+      print('DEBUG: Calling verification endpoint with token: $verificationToken');
+      print('DEBUG: Full URL: ${AppConfig.baseUrl}/auth/verify/$verificationToken');
 
       final response = await _dio.get(
         '/auth/verify/$verificationToken',
-        options: Options(responseType: ResponseType.plain),
+        options: Options(
+          responseType: ResponseType.json,
+        ),
       );
 
       print('DEBUG: Response status: ${response.statusCode}');
+      print('DEBUG: Response data: ${response.data}');
 
       if (response.statusCode == 200) {
         print('DEBUG: Verification successful!');
         ToastUtils.showSuccessToast('Account verified successfully!');
-
-        // Clear loading state
-        state = state.copyWith(
-          isLoading: false,
-        );
+        return true;
       } else {
-        // Handle non-200 responses
-        throw DioException(
-          requestOptions: response.requestOptions,
-          response: response,
-          type: DioExceptionType.badResponse,
-        );
+        // Handle error responses
+        final errorData = response.data;
+        String errorMessage = 'Verification failed';
+
+        if (errorData is Map<String, dynamic>) {
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+        }
+
+        print('DEBUG: Verification failed: $errorMessage');
+        throw Exception(errorMessage);
       }
     } on DioException catch (e) {
       print('DEBUG: DioException: ${e.message}');
       print('DEBUG: Status code: ${e.response?.statusCode}');
+      print('DEBUG: Response data: ${e.response?.data}');
 
       String errorMessage = 'Verification failed';
 
       if (e.response?.statusCode == 404) {
         errorMessage = 'Invalid or expired verification link';
       } else if (e.response?.statusCode == 400) {
-        errorMessage = 'Account already verified';
+        errorMessage = 'Account already verified or invalid request';
+      } else if (e.response?.statusCode == 500) {
+        errorMessage = 'Server error. Please try again later.';
       } else if (e.type == DioExceptionType.connectionTimeout) {
-        errorMessage = 'Connection timeout. Please check your internet.';
+        errorMessage = 'Connection timeout. Please check your internet connection.';
       } else if (e.type == DioExceptionType.connectionError) {
         errorMessage = 'Cannot connect to server. Please try again later.';
+      } else if (e.response?.data != null) {
+        // Try to extract error message from response
+        final errorData = e.response!.data;
+        if (errorData is Map<String, dynamic>) {
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+        } else if (errorData is String) {
+          errorMessage = errorData;
+        }
       }
 
-      ToastUtils.showErrorToast(errorMessage);
-      state = state.copyWith(error: errorMessage, isLoading: false);
+      print('DEBUG: Throwing error: $errorMessage');
       throw Exception(errorMessage);
     } catch (e) {
       print('DEBUG: General exception: $e');
-      const errorMessage = 'An unexpected error occurred';
-      ToastUtils.showErrorToast(errorMessage);
-      state = state.copyWith(error: errorMessage, isLoading: false);
-      throw Exception(errorMessage);
+      print('DEBUG: Error type: ${e.runtimeType}');
+      throw Exception('An unexpected error occurred during verification');
     }
   }
 
-  Future<void> resendActivationEmail(String email) async {
-    state = state.copyWith(isLoading: true, error: null);
-
-    if (email.isEmpty) {
-      ToastUtils.showErrorToast('Please enter your email address');
-      state = state.copyWith(isLoading: false);
-      return;
-    }
-
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
-      ToastUtils.showErrorToast('Please enter a valid email address');
-      state = state.copyWith(isLoading: false);
-      return;
-    }
-
+// Also update resendActivationEmail to return bool
+  Future<bool> resendActivationEmail(String email) async {
     try {
-      await _dio.post(
-        '/auth/resend-activation/$email',
-        options: Options(responseType: ResponseType.plain),
+      if (email.isEmpty) {
+        throw Exception('Please enter your email address');
+      }
+
+      if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+        throw Exception('Please enter a valid email address');
+      }
+
+      print('DEBUG: Resending activation email to: $email');
+
+      final response = await _dio.post(
+        '/auth/resend-activation',
+        data: {'email': email},
+        options: Options(responseType: ResponseType.json),
       );
-      ToastUtils.showSuccessToast('Activation email resent! Check your inbox.');
-      state = state.copyWith(isLoading: false);
+
+      print('DEBUG: Resend response status: ${response.statusCode}');
+      print('DEBUG: Resend response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        ToastUtils.showSuccessToast('Activation email resent! Check your inbox.');
+        return true;
+      } else {
+        throw Exception('Failed to resend activation email');
+      }
     } on DioException catch (e) {
+      print('DEBUG: Resend DioException: ${e.message}');
+
       String errorMessage = 'Failed to resend activation email';
+
       if (e.response?.statusCode == 404) {
         errorMessage = 'No account found with this email';
       } else if (e.response?.statusCode == 400) {
-        errorMessage = 'Account already verified';
+        errorMessage = 'Account already verified or invalid email';
+      } else if (e.response?.data != null) {
+        final errorData = e.response!.data;
+        if (errorData is Map<String, dynamic>) {
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+        }
       }
-      ToastUtils.showErrorToast(errorMessage);
-      state = state.copyWith(error: errorMessage, isLoading: false);
+
+      throw Exception(errorMessage);
     } catch (e) {
-      const errorMessage = 'An unexpected error occurred';
-      ToastUtils.showErrorToast(errorMessage);
-      state = state.copyWith(error: errorMessage, isLoading: false);
+      print('DEBUG: Resend general exception: $e');
+      throw Exception('An unexpected error occurred');
     }
   }
 

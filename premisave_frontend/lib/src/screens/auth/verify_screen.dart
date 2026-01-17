@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth/auth_provider.dart';
+import '../../utils/toast_utils.dart';
 import '../public/contact_content.dart';
 
 class VerifyScreen extends ConsumerStatefulWidget {
@@ -18,37 +19,107 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   bool _isVerified = false;
   String? _error;
   bool _isVerifying = false;
+  bool _isResending = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.verificationToken != null) {
-      _verifyToken();
-    }
+    // Use WidgetsBinding to run after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.verificationToken != null && !_isVerifying && !_isVerified) {
+        _verifyToken();
+      }
+    });
   }
 
   Future<void> _verifyToken() async {
-    if (_isVerifying) return;
+    if (_isVerifying || widget.verificationToken == null) return;
 
-    setState(() => _isVerifying = true);
+    setState(() {
+      _isVerifying = true;
+      _error = null;
+    });
+
     try {
-      await ref.read(authProvider.notifier).verifyEmailToken(widget.verificationToken!);
-      setState(() {
-        _isVerified = true;
-        _isVerifying = false;
-      });
-      await Future.delayed(const Duration(seconds: 2));
-      if (mounted) context.go('/login');
+      print('SCREEN: Starting verification with token: ${widget.verificationToken}');
+
+      final success = await ref.read(authProvider.notifier).verifyEmailToken(widget.verificationToken!);
+
+      if (success) {
+        print('SCREEN: Verification successful');
+        setState(() {
+          _isVerified = true;
+          _isVerifying = false;
+        });
+
+        // Show success message
+        ToastUtils.showSuccessToast('Account verified successfully!');
+
+        // Wait 2 seconds then redirect
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          print('SCREEN: Redirecting to login...');
+          context.go('/login');
+        }
+      } else {
+        throw Exception('Verification failed');
+      }
     } catch (e) {
+      print('SCREEN: Verification error: $e');
+      String errorMessage = e.toString().replaceAll('Exception: ', '');
+
+      // Handle specific error messages
+      if (errorMessage.contains('Invalid or expired')) {
+        errorMessage = 'Invalid or expired verification link';
+      } else if (errorMessage.contains('already verified')) {
+        errorMessage = 'Account already verified';
+      } else if (errorMessage.contains('Connection timeout')) {
+        errorMessage = 'Connection timeout. Please check your internet.';
+      } else if (errorMessage.contains('Cannot connect')) {
+        errorMessage = 'Cannot connect to server. Please try again later.';
+      }
+
       setState(() {
-        _error = e.toString();
+        _error = errorMessage;
         _isVerifying = false;
       });
+
+      // Show error toast
+      ToastUtils.showErrorToast(errorMessage);
     }
   }
 
   Future<void> _resendActivation() async {
-    await ref.read(authProvider.notifier).resendActivationEmail(_emailController.text.trim());
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      ToastUtils.showErrorToast('Please enter your email address');
+      return;
+    }
+
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+      ToastUtils.showErrorToast('Please enter a valid email address');
+      return;
+    }
+
+    setState(() => _isResending = true);
+
+    try {
+      print('SCREEN: Resending activation email to: $email');
+
+      final success = await ref.read(authProvider.notifier).resendActivationEmail(email);
+
+      if (success) {
+        // Clear the text field after successful resend
+        _emailController.clear();
+      }
+    } catch (e) {
+      print('SCREEN: Resend error: $e');
+      String errorMessage = e.toString().replaceAll('Exception: ', '');
+      ToastUtils.showErrorToast(errorMessage);
+    } finally {
+      setState(() => _isResending = false);
+    }
   }
 
   void _showContactDialog() {
@@ -88,10 +159,14 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     );
   }
 
+  void _retryVerification() {
+    if (widget.verificationToken != null) {
+      _verifyToken();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
-    final isLoading = authState.isLoading;
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 400;
 
@@ -134,24 +209,23 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
                         padding: EdgeInsets.all(
                           screenWidth > 600 ? 32 : 20,
                         ),
-                        child: _buildContent(authState, isLoading),
+                        child: _buildContent(),
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
-                  // Bottom section with consistent button sizes
-                  if (widget.verificationToken == null || _error != null)
-                    Container(
-                      width: double.infinity,
-                      constraints: BoxConstraints(
-                        maxWidth: screenWidth > 600 ? 500 : screenWidth * 0.9,
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      margin: EdgeInsets.symmetric(
-                        horizontal: screenWidth > 600 ? 20 : 16,
-                      ),
-                      child: _buildBottomSection(screenWidth),
+                  // Bottom section
+                  Container(
+                    width: double.infinity,
+                    constraints: BoxConstraints(
+                      maxWidth: screenWidth > 600 ? 500 : screenWidth * 0.9,
                     ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    margin: EdgeInsets.symmetric(
+                      horizontal: screenWidth > 600 ? 20 : 16,
+                    ),
+                    child: _buildBottomSection(screenWidth),
+                  ),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -162,7 +236,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     );
   }
 
-  Widget _buildContent(AuthState authState, bool isLoading) {
+  Widget _buildContent() {
     final hasToken = widget.verificationToken != null;
 
     if (hasToken && _isVerifying) {
@@ -177,7 +251,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       return _buildErrorState();
     }
 
-    return _buildResendForm(isLoading);
+    return _buildResendForm();
   }
 
   Widget _buildVerifyingState() {
@@ -213,7 +287,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
         ),
         const SizedBox(height: 12),
         const Text(
-          'Please wait while we confirm your email address',
+          'Please wait while we confirm your email address...',
           style: TextStyle(color: Colors.black54, fontSize: 15),
           textAlign: TextAlign.center,
         ),
@@ -307,41 +381,60 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
         ),
         const SizedBox(height: 12),
         Text(
-          _error?.replaceAll('Exception: ', '') ??
-              'An error occurred during verification',
+          _error ?? 'An error occurred during verification',
           style: const TextStyle(color: Colors.black54, fontSize: 15),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 32),
-        _buildResendForm(false),
+        const SizedBox(height: 24),
+        // Retry button for failed verification
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: _retryVerification,
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 50),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              side: const BorderSide(color: Color(0xFF0A2463)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.refresh, color: Color(0xFF0A2463), size: 20),
+                SizedBox(width: 10),
+                Text('Try Again',
+                    style: TextStyle(color: Color(0xFF0A2463), fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Show resend form in error state
+        _buildResendForm(),
       ],
     );
   }
 
-  Widget _buildResendForm(bool isLoading) {
+  Widget _buildResendForm() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Align(
-          alignment: Alignment.center,
-          child: Icon(Icons.mail_outline,
-              size: 70, color: Color(0xFF0A2463)),
-        ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         const Text(
-          'Resend Verification Email',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,
+          'Need a new verification link?',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
               color: Colors.black87),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         const Text(
           'Enter your email to receive a new verification link',
-          style: TextStyle(color: Colors.black54, fontSize: 15),
+          style: TextStyle(color: Colors.black54, fontSize: 14),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 20),
         TextField(
           controller: _emailController,
           decoration: InputDecoration(
@@ -357,20 +450,20 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
           ),
           keyboardType: TextInputType.emailAddress,
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: isLoading ? null : _resendActivation,
+            onPressed: _isResending ? null : _resendActivation,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0A2463),
               foregroundColor: Colors.white,
-              minimumSize: const Size(0, 50), // Consistent height
+              minimumSize: const Size(0, 50),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            child: isLoading
+            child: _isResending
                 ? const SizedBox(
               width: 24,
               height: 24,
@@ -382,7 +475,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
               children: [
                 Icon(Icons.send_outlined, size: 20),
                 SizedBox(width: 10),
-                Text('Send Verification Email',
+                Text('Send New Verification Link',
                     style: TextStyle(fontSize: 16,
                         fontWeight: FontWeight.w600)),
               ],
@@ -397,13 +490,13 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Contact Support Button - Same size as main button
+        // Contact Support Button
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
             onPressed: _showContactDialog,
             style: OutlinedButton.styleFrom(
-              minimumSize: const Size(0, 50), // Same height as main button
+              minimumSize: const Size(0, 50),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -421,7 +514,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
                   style: TextStyle(
                     color: Color(0xFF0A2463),
                     fontWeight: FontWeight.w600,
-                    fontSize: 16, // Same font size as main button
+                    fontSize: 16,
                   ),
                 ),
               ],
@@ -430,13 +523,13 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
         ),
         const SizedBox(height: 16),
 
-        // Back to Login Button - Same size as main button
+        // Back to Login Button
         SizedBox(
           width: double.infinity,
           child: TextButton(
             onPressed: () => context.go('/login'),
             style: TextButton.styleFrom(
-              minimumSize: const Size(0, 50), // Same height as main button
+              minimumSize: const Size(0, 50),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             child: const Row(
@@ -450,7 +543,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
                   'Back to Login',
                   style: TextStyle(
                     color: Colors.blue,
-                    fontSize: 16, // Same font size as main button
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
