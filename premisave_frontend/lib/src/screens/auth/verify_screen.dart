@@ -17,6 +17,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _isVerified = false;
   String? _error;
+  bool _isVerifying = false;
 
   @override
   void initState() {
@@ -27,13 +28,22 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   }
 
   Future<void> _verifyToken() async {
+    if (_isVerifying) return;
+
+    setState(() => _isVerifying = true);
     try {
       await ref.read(authProvider.notifier).verifyEmailToken(widget.verificationToken!);
-      setState(() => _isVerified = true);
+      setState(() {
+        _isVerified = true;
+        _isVerifying = false;
+      });
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) context.go('/login');
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() {
+        _error = e.toString();
+        _isVerifying = false;
+      });
     }
   }
 
@@ -45,25 +55,33 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     showDialog(
       context: context,
       builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Contact Support', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, size: 24),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const ContactContent(),
-            ],
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.9,
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Contact Support',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, size: 24),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const ContactContent(),
+              ],
+            ),
           ),
         ),
       ),
@@ -74,26 +92,68 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final isLoading = authState.isLoading;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue.shade50, Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      body: SafeArea(
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue.shade50, Colors.white],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
           ),
-        ),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 500),
-            margin: const EdgeInsets.all(20),
-            child: Card(
-              elevation: 8,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: _buildContent(authState, isLoading),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 40),
+                  Container(
+                    width: double.infinity,
+                    constraints: BoxConstraints(
+                      maxWidth: screenWidth > 600 ? 500 : screenWidth * 0.9,
+                    ),
+                    margin: EdgeInsets.symmetric(
+                      horizontal: screenWidth > 600 ? 20 : 16,
+                    ),
+                    child: Card(
+                      elevation: 8,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(
+                          screenWidth > 600 ? 32 : 20,
+                        ),
+                        child: _buildContent(authState, isLoading),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Bottom section with consistent button sizes
+                  if (widget.verificationToken == null || _error != null)
+                    Container(
+                      width: double.infinity,
+                      constraints: BoxConstraints(
+                        maxWidth: screenWidth > 600 ? 500 : screenWidth * 0.9,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      margin: EdgeInsets.symmetric(
+                        horizontal: screenWidth > 600 ? 20 : 16,
+                      ),
+                      child: _buildBottomSection(screenWidth),
+                    ),
+                  const SizedBox(height: 40),
+                ],
               ),
             ),
           ),
@@ -105,7 +165,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   Widget _buildContent(AuthState authState, bool isLoading) {
     final hasToken = widget.verificationToken != null;
 
-    if (hasToken && isLoading) {
+    if (hasToken && _isVerifying) {
       return _buildVerifyingState();
     }
 
@@ -125,37 +185,36 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         const SizedBox(height: 20),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                shape: BoxShape.circle,
+        Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            shape: BoxShape.circle,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0A2463)),
+                strokeWidth: 4,
               ),
-            ),
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0A2463)),
-              strokeWidth: 4,
-            ),
-            const Positioned.fill(
-              child: Center(
-                child: Icon(Icons.verified_outlined, color: Colors.blue, size: 50),
-              ),
-            ),
-          ],
+              Icon(Icons.verified_outlined,
+                  color: Colors.blue.shade300, size: 40),
+            ],
+          ),
         ),
         const SizedBox(height: 32),
         const Text(
           'Verifying Your Account',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,
+              color: Colors.black87),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
         const Text(
           'Please wait while we confirm your email address',
-          style: TextStyle(color: Colors.black54, fontSize: 16),
+          style: TextStyle(color: Colors.black54, fontSize: 15),
           textAlign: TextAlign.center,
         ),
       ],
@@ -167,43 +226,57 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 120,
-          height: 120,
+          width: 100,
+          height: 100,
           decoration: BoxDecoration(
             color: Colors.green.shade50,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.green.shade200, width: 4),
+            border: Border.all(color: Colors.green.shade200, width: 3),
           ),
-          child: const Icon(Icons.check_circle, color: Colors.green, size: 70),
+          child: const Icon(Icons.check_circle,
+              color: Colors.green, size: 50),
         ),
         const SizedBox(height: 32),
         const Text(
           'Email Verified!',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,
+              color: Colors.green),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
         const Text(
-          'Your account has been successfully verified. You can now sign in.',
-          style: TextStyle(color: Colors.black54, fontSize: 16),
+          'Your account has been successfully verified.',
+          style: TextStyle(color: Colors.black54, fontSize: 15),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'You can now sign in to your account.',
+          style: TextStyle(color: Colors.black54, fontSize: 15),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
-        ElevatedButton(
-          onPressed: () => context.go('/login'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Go to Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              SizedBox(width: 8),
-              Icon(Icons.arrow_forward, size: 20),
-            ],
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => context.go('/login'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(0, 50),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Go to Login',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                SizedBox(width: 8),
+                Icon(Icons.arrow_forward, size: 20),
+              ],
+            ),
           ),
         ),
       ],
@@ -215,24 +288,28 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 120,
-          height: 120,
+          width: 100,
+          height: 100,
           decoration: BoxDecoration(
             color: Colors.red.shade50,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.red.shade200, width: 4),
+            border: Border.all(color: Colors.red.shade200, width: 3),
           ),
-          child: const Icon(Icons.error_outline, color: Colors.red, size: 70),
+          child: const Icon(Icons.error_outline,
+              color: Colors.red, size: 50),
         ),
         const SizedBox(height: 32),
         const Text(
           'Verification Failed',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.red),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,
+              color: Colors.red),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
         Text(
-          _error ?? 'An error occurred during verification',
-          style: const TextStyle(color: Colors.black54, fontSize: 16),
+          _error?.replaceAll('Exception: ', '') ??
+              'An error occurred during verification',
+          style: const TextStyle(color: Colors.black54, fontSize: 15),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
@@ -244,79 +321,142 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   Widget _buildResendForm(bool isLoading) {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.mail_outline, size: 80, color: Color(0xFF0A2463)),
+        const Align(
+          alignment: Alignment.center,
+          child: Icon(Icons.mail_outline,
+              size: 70, color: Color(0xFF0A2463)),
+        ),
         const SizedBox(height: 24),
         const Text(
           'Resend Verification Email',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,
+              color: Colors.black87),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
         const Text(
-          'Enter your email address to receive a new verification link',
-          style: TextStyle(color: Colors.black54, fontSize: 16),
+          'Enter your email to receive a new verification link',
+          style: TextStyle(color: Colors.black54, fontSize: 15),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 28),
         TextField(
           controller: _emailController,
           decoration: InputDecoration(
             labelText: 'Email Address',
             hintText: 'you@example.com',
             prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12)),
             filled: true,
             fillColor: Colors.grey.shade50,
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 16),
           ),
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 24),
-        ElevatedButton(
-          onPressed: isLoading ? null : _resendActivation,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0A2463),
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: isLoading ? null : _resendActivation,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0A2463),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(0, 50), // Consistent height
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: isLoading
+                ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                  color: Colors.white, strokeWidth: 3),
+            )
+                : const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.send_outlined, size: 20),
+                SizedBox(width: 10),
+                Text('Send Verification Email',
+                    style: TextStyle(fontSize: 16,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ),
           ),
-          child: isLoading
-              ? const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-          )
-              : const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.send_outlined, size: 20),
-              SizedBox(width: 8),
-              Text('Send Verification Email', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomSection(double screenWidth) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Contact Support Button - Same size as main button
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: _showContactDialog,
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 50), // Same height as main button
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              side: const BorderSide(color: Color(0xFF0A2463)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.support_agent_outlined,
+                    color: Color(0xFF0A2463), size: 20),
+                SizedBox(width: 10),
+                Text(
+                  'Contact Support',
+                  style: TextStyle(
+                    color: Color(0xFF0A2463),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16, // Same font size as main button
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 16),
-        OutlinedButton(
-          onPressed: _showContactDialog,
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            side: const BorderSide(color: Color(0xFF0A2463)),
+
+        // Back to Login Button - Same size as main button
+        SizedBox(
+          width: double.infinity,
+          child: TextButton(
+            onPressed: () => context.go('/login'),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, 50), // Same height as main button
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.arrow_back_ios_new,
+                    color: Colors.blue, size: 16),
+                SizedBox(width: 10),
+                Text(
+                  'Back to Login',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 16, // Same font size as main button
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.support_agent_outlined, color: Color(0xFF0A2463), size: 20),
-              SizedBox(width: 8),
-              Text('Contact Support', style: TextStyle(color: Color(0xFF0A2463), fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextButton(
-          onPressed: () => context.go('/login'),
-          child: const Text('Back to Login', style: TextStyle(color: Colors.blue)),
         ),
       ],
     );

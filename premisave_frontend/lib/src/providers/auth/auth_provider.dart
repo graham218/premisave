@@ -190,11 +190,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
         print('DEBUG: Verification successful!');
         ToastUtils.showSuccessToast('Account verified successfully!');
 
+        // Clear loading state
         state = state.copyWith(
           isLoading: false,
         );
-
-        return Future.value();
+      } else {
+        // Handle non-200 responses
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          type: DioExceptionType.badResponse,
+        );
       }
     } on DioException catch (e) {
       print('DEBUG: DioException: ${e.message}');
