@@ -173,42 +173,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-
   Future<bool> verifyEmailToken(String verificationToken) async {
     try {
       print('DEBUG: Calling verification endpoint with token: $verificationToken');
-      print('DEBUG: Full URL: ${AppConfig.baseUrl}/auth/verify/$verificationToken');
 
       final response = await _dio.get(
         '/auth/verify/$verificationToken',
-        options: Options(
-          responseType: ResponseType.json,
-        ),
+        options: Options(responseType: ResponseType.json),
       );
 
       print('DEBUG: Response status: ${response.statusCode}');
-      print('DEBUG: Response data: ${response.data}');
 
       if (response.statusCode == 200) {
         print('DEBUG: Verification successful!');
         ToastUtils.showSuccessToast('Account verified successfully!');
         return true;
       } else {
-        // Handle error responses
-        final errorData = response.data;
-        String errorMessage = 'Verification failed';
-
-        if (errorData is Map<String, dynamic>) {
-          errorMessage = errorData['message']?.toString() ?? errorMessage;
-        }
-
-        print('DEBUG: Verification failed: $errorMessage');
-        throw Exception(errorMessage);
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          type: DioExceptionType.badResponse,
+        );
       }
     } on DioException catch (e) {
       print('DEBUG: DioException: ${e.message}');
       print('DEBUG: Status code: ${e.response?.statusCode}');
-      print('DEBUG: Response data: ${e.response?.data}');
 
       String errorMessage = 'Verification failed';
 
@@ -223,7 +212,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       } else if (e.type == DioExceptionType.connectionError) {
         errorMessage = 'Cannot connect to server. Please try again later.';
       } else if (e.response?.data != null) {
-        // Try to extract error message from response
         final errorData = e.response!.data;
         if (errorData is Map<String, dynamic>) {
           errorMessage = errorData['message']?.toString() ?? errorMessage;
@@ -232,16 +220,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }
       }
 
-      print('DEBUG: Throwing error: $errorMessage');
       throw Exception(errorMessage);
     } catch (e) {
       print('DEBUG: General exception: $e');
-      print('DEBUG: Error type: ${e.runtimeType}');
       throw Exception('An unexpected error occurred during verification');
     }
   }
 
-// Also update resendActivationEmail to return bool
   Future<bool> resendActivationEmail(String email) async {
     try {
       if (email.isEmpty) {
@@ -261,7 +246,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
 
       print('DEBUG: Resend response status: ${response.statusCode}');
-      print('DEBUG: Resend response data: ${response.data}');
 
       if (response.statusCode == 200) {
         ToastUtils.showSuccessToast('Activation email resent! Check your inbox.');
@@ -292,15 +276,101 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-// Method to test backend connection if needed
-  Future<void> testBackendConnection() async {
-    print('DEBUG: Testing backend connection');
+  Future<void> forgotPassword(String email) async {
+    state = state.copyWith(isLoading: true, error: null);
     try {
-      final response = await _dio.get('/auth/test');
-      print('DEBUG: Backend is reachable: ${response.statusCode}');
+      print('DEBUG: Sending forgot password request for email: $email');
+
+      final response = await _dio.post(
+        '/auth/forgot-password',
+        data: {'email': email},
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
+
+      print('DEBUG: Forgot password response: ${response.statusCode}');
+
+      ToastUtils.showSuccessToast('Password reset link sent to your email!');
+      state = state.copyWith(isLoading: false);
+
+    } on DioException catch (e) {
+      print('DEBUG: Forgot password error: ${e.message}');
+      print('DEBUG: Status code: ${e.response?.statusCode}');
+      print('DEBUG: Response data: ${e.response?.data}');
+
+      String errorMessage = 'Failed to send reset email. Please try again.';
+
+      if (e.response?.statusCode == 400) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          errorMessage = data['message']?.toString() ?? errorMessage;
+        } else if (data is String) {
+          errorMessage = data;
+        }
+      } else if (e.response?.statusCode == 404) {
+        errorMessage = 'No account found with this email address.';
+      }
+
+      ToastUtils.showErrorToast(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
     } catch (e) {
-      print('DEBUG: Cannot reach backend: $e');
-      rethrow;
+      print('DEBUG: Unexpected error: $e');
+      ToastUtils.showErrorToast('An unexpected error occurred');
+      state = state.copyWith(error: 'An unexpected error occurred', isLoading: false);
+    }
+  }
+
+  Future<void> confirmResetPassword(String token, String newPassword, String confirmPassword) async {
+    if (newPassword != confirmPassword) {
+      ToastUtils.showErrorToast('New passwords do not match');
+      state = state.copyWith(error: 'New passwords do not match');
+      return;
+    }
+
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      print('DEBUG: Confirming password reset with token: $token');
+
+      final response = await _dio.post(
+        '/auth/reset-password/confirm',
+        data: {
+          'token': token,
+          'newPassword': newPassword,
+          'confirmPassword': confirmPassword,
+        },
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
+
+      print('DEBUG: Reset password confirm response: ${response.statusCode}');
+
+      ToastUtils.showSuccessToast('Password has been reset successfully!');
+      state = state.copyWith(isLoading: false);
+
+    } on DioException catch (e) {
+      print('DEBUG: Reset password confirm error: ${e.message}');
+      print('DEBUG: Status code: ${e.response?.statusCode}');
+      print('DEBUG: Response data: ${e.response?.data}');
+
+      String errorMessage = 'Failed to reset password. Please try again.';
+
+      if (e.response?.statusCode == 400) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          errorMessage = data['message']?.toString() ?? errorMessage;
+        } else if (data is String) {
+          errorMessage = data;
+        }
+      }
+
+      ToastUtils.showErrorToast(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
+    } catch (e) {
+      print('DEBUG: Unexpected error: $e');
+      ToastUtils.showErrorToast('An unexpected error occurred');
+      state = state.copyWith(error: 'An unexpected error occurred', isLoading: false);
     }
   }
 
@@ -518,28 +588,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (e is DioException) {
         errorMessage = _getUserFriendlyErrorMessage(e);
-      }
-
-      ToastUtils.showErrorToast(errorMessage);
-      state = state.copyWith(error: errorMessage, isLoading: false);
-    }
-  }
-
-  Future<void> forgotPassword(String email) async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      await _dio.post('/auth/reset-password', data: {'email': email});
-      ToastUtils.showSuccessToast('Password reset link sent to your email!');
-      state = state.copyWith(isLoading: false);
-    } catch (e) {
-      String errorMessage = 'Failed to send reset email. Please try again.';
-
-      if (e is DioException) {
-        errorMessage = _getUserFriendlyErrorMessage(e);
-
-        if (e.response?.statusCode == 404) {
-          errorMessage = 'No account found with this email address.';
-        }
       }
 
       ToastUtils.showErrorToast(errorMessage);
