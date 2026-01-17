@@ -28,6 +28,7 @@ final GoRouter router = GoRouter(
       '/signup',
       '/forgot-password',
       '/reset-password',
+      '/reset-password/:token',
       '/verify',
       '/verify/:token',
     ];
@@ -68,7 +69,17 @@ final GoRouter router = GoRouter(
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
     GoRoute(path: '/signup', builder: (_, __) => const SignupScreen()),
     GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
-    GoRoute(path: '/reset-password', builder: (_, __) => const ResetPasswordScreen()),
+    GoRoute(
+      path: '/reset-password',
+      builder: (_, __) => const ResetPasswordScreen(),
+    ),
+    GoRoute(
+      path: '/reset-password/:token',
+      builder: (_, state) {
+        final token = state.pathParameters['token'];
+        return ResetPasswordScreen(resetToken: token);
+      },
+    ),
     GoRoute(
       path: '/verify',
       builder: (_, __) => const VerifyScreen(),

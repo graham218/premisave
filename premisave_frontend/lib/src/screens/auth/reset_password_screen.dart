@@ -4,13 +4,13 @@ import 'package:go_router/go_router.dart';
 import '../../providers/auth/auth_provider.dart';
 
 class ResetPasswordScreen extends ConsumerWidget {
-  const ResetPasswordScreen({super.key});
+  final String? resetToken;
+
+  const ResetPasswordScreen({super.key, this.resetToken});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final authNotifier = ref.read(authProvider.notifier);
-    final oldPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
@@ -33,18 +33,16 @@ class ResetPasswordScreen extends ConsumerWidget {
                 ? _buildWideLayout(
               context,
               authState.isLoading,
-              oldPasswordController,
               newPasswordController,
               confirmPasswordController,
-              authNotifier,
+              ref,
             )
                 : _buildMobileLayout(
               context,
               authState.isLoading,
-              oldPasswordController,
               newPasswordController,
               confirmPasswordController,
-              authNotifier,
+              ref,
             ),
           ),
         ),
@@ -55,14 +53,12 @@ class ResetPasswordScreen extends ConsumerWidget {
   Widget _buildWideLayout(
       BuildContext context,
       bool isLoading,
-      TextEditingController oldPasswordController,
       TextEditingController newPasswordController,
       TextEditingController confirmPasswordController,
-      AuthNotifier authNotifier,
+      WidgetRef ref,
       ) {
     return StatefulBuilder(
       builder: (context, setState) {
-        bool obscureOldPassword = true;
         bool obscureNewPassword = true;
         bool obscureConfirmPassword = true;
 
@@ -94,10 +90,10 @@ class ResetPasswordScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.real_estate_agent, color: Colors.white, size: 80),
+                        Icon(Icons.lock_reset, color: Colors.white, size: 80),
                         SizedBox(height: 24),
                         Text(
-                          "Secure Your Premisave Account",
+                          "Reset Your Password",
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 26,
@@ -107,8 +103,8 @@ class ResetPasswordScreen extends ConsumerWidget {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          "Update your password to keep your real estate investments secure. "
-                              "We recommend using a strong, unique password.",
+                          "Create a new secure password for your Premisave account. "
+                              "Make sure it's strong and unique to protect your investments.",
                           style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.5),
                         ),
                         SizedBox(height: 30),
@@ -124,7 +120,7 @@ class ResetPasswordScreen extends ConsumerWidget {
                           children: [
                             Icon(Icons.lock_clock, color: Colors.white70, size: 20),
                             SizedBox(width: 10),
-                            Text("Regular security updates", style: TextStyle(color: Colors.white70)),
+                            Text("24-hour reset link validity", style: TextStyle(color: Colors.white70)),
                           ],
                         ),
                         SizedBox(height: 10),
@@ -141,7 +137,7 @@ class ResetPasswordScreen extends ConsumerWidget {
                 ),
               ),
 
-              // Right side - Password Form
+              // Right side - Reset Form
               Expanded(
                 flex: 1,
                 child: Padding(
@@ -151,16 +147,13 @@ class ResetPasswordScreen extends ConsumerWidget {
                       child: _buildPasswordForm(
                         context,
                         isLoading,
-                        obscureOldPassword,
                         obscureNewPassword,
                         obscureConfirmPassword,
-                            () => setState(() => obscureOldPassword = !obscureOldPassword),
                             () => setState(() => obscureNewPassword = !obscureNewPassword),
                             () => setState(() => obscureConfirmPassword = !obscureConfirmPassword),
-                        oldPasswordController,
                         newPasswordController,
                         confirmPasswordController,
-                        authNotifier,
+                        ref,
                       ),
                     ),
                   ),
@@ -176,14 +169,12 @@ class ResetPasswordScreen extends ConsumerWidget {
   Widget _buildMobileLayout(
       BuildContext context,
       bool isLoading,
-      TextEditingController oldPasswordController,
       TextEditingController newPasswordController,
       TextEditingController confirmPasswordController,
-      AuthNotifier authNotifier,
+      WidgetRef ref,
       ) {
     return StatefulBuilder(
       builder: (context, setState) {
-        bool obscureOldPassword = true;
         bool obscureNewPassword = true;
         bool obscureConfirmPassword = true;
 
@@ -201,10 +192,10 @@ class ResetPasswordScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.real_estate_agent, color: Color(0xFF0A2463), size: 70),
+                const Icon(Icons.lock_reset, color: Color(0xFF0A2463), size: 70),
                 const SizedBox(height: 16),
                 const Text(
-                  "Change Your Password",
+                  "Create New Password",
                   style: TextStyle(
                     fontSize: 26,
                     color: Color(0xFF0A2463),
@@ -213,7 +204,7 @@ class ResetPasswordScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  "Secure your Premisave account with a new password",
+                  "Enter a new secure password for your account",
                   style: TextStyle(color: Colors.black54),
                   textAlign: TextAlign.center,
                 ),
@@ -221,16 +212,13 @@ class ResetPasswordScreen extends ConsumerWidget {
                 _buildPasswordForm(
                   context,
                   isLoading,
-                  obscureOldPassword,
                   obscureNewPassword,
                   obscureConfirmPassword,
-                      () => setState(() => obscureOldPassword = !obscureOldPassword),
                       () => setState(() => obscureNewPassword = !obscureNewPassword),
                       () => setState(() => obscureConfirmPassword = !obscureConfirmPassword),
-                  oldPasswordController,
                   newPasswordController,
                   confirmPasswordController,
-                  authNotifier,
+                  ref,
                 ),
                 const SizedBox(height: 20),
                 _buildBackToLoginLink(context),
@@ -245,45 +233,45 @@ class ResetPasswordScreen extends ConsumerWidget {
   Widget _buildPasswordForm(
       BuildContext context,
       bool isLoading,
-      bool obscureOldPassword,
       bool obscureNewPassword,
       bool obscureConfirmPassword,
-      VoidCallback toggleObscureOldPassword,
       VoidCallback toggleObscureNewPassword,
       VoidCallback toggleObscureConfirmPassword,
-      TextEditingController oldPasswordController,
       TextEditingController newPasswordController,
       TextEditingController confirmPasswordController,
-      AuthNotifier authNotifier,
+      WidgetRef ref,
       ) {
     return Column(
       children: [
-        // Current Password
-        TextField(
-          controller: oldPasswordController,
-          obscureText: obscureOldPassword,
-          enabled: !isLoading,
-          decoration: InputDecoration(
-            labelText: 'Current Password',
-            hintText: 'Enter your current password',
-            prefixIcon: const Icon(Icons.lock_outline),
-            suffixIcon: IconButton(
-              icon: Icon(obscureOldPassword ? Icons.visibility : Icons.visibility_off),
-              onPressed: toggleObscureOldPassword,
+        // Reset Token Info (if available)
+        if (resetToken != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFe8f5e9),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF4caf50), width: 1),
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            child: Row(
+              children: [
+                const Icon(Icons.verified, color: Color(0xFF4caf50), size: 20),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    "Reset link verified. You can now set a new password.",
+                    style: TextStyle(color: Color(0xFF2e7d32), fontSize: 14),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-
-        const SizedBox(height: 16),
 
         // New Password
         TextField(
           controller: newPasswordController,
           obscureText: obscureNewPassword,
-          enabled: !isLoading,
+          enabled: !isLoading && resetToken != null,
           decoration: InputDecoration(
             labelText: 'New Password',
             hintText: 'Enter your new password',
@@ -304,7 +292,7 @@ class ResetPasswordScreen extends ConsumerWidget {
         TextField(
           controller: confirmPasswordController,
           obscureText: obscureConfirmPassword,
-          enabled: !isLoading,
+          enabled: !isLoading && resetToken != null,
           decoration: InputDecoration(
             labelText: 'Confirm New Password',
             hintText: 'Confirm your new password',
@@ -368,7 +356,7 @@ class ResetPasswordScreen extends ConsumerWidget {
 
         const SizedBox(height: 24),
 
-        // Change Password Button
+        // Reset Password Button
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
@@ -383,7 +371,7 @@ class ResetPasswordScreen extends ConsumerWidget {
             )
                 : const Icon(Icons.lock_reset, color: Colors.white),
             label: Text(
-              isLoading ? 'Updating Password...' : 'Change Password',
+              isLoading ? 'Resetting Password...' : 'Reset Password',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -398,32 +386,80 @@ class ResetPasswordScreen extends ConsumerWidget {
               ),
               elevation: 3,
             ),
-            onPressed: isLoading
+            onPressed: (isLoading || resetToken == null)
                 ? null
                 : () async {
-              await authNotifier.changePassword(
-                oldPasswordController.text,
+              if (newPasswordController.text.isEmpty ||
+                  confirmPasswordController.text.isEmpty) {
+                _showSnackBar(context, 'Please fill in all fields', Colors.red);
+                return;
+              }
+
+              await ref.read(authProvider.notifier).confirmResetPassword(
+                resetToken!,
                 newPasswordController.text,
                 confirmPasswordController.text,
               );
 
-              // Show success message
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Password changed successfully'),
-                  backgroundColor: const Color(0xFF0A2463),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              );
-
-              // Navigate back to login
-              context.go('/login');
+              // Success message is shown by the provider
+              // Navigate back to login after a delay
+              await Future.delayed(const Duration(seconds: 2));
+              if (context.mounted) {
+                context.go('/login');
+              }
             },
           ),
         ),
+
+        // Token Missing Warning
+        if (resetToken == null)
+          Container(
+            margin: const EdgeInsets.only(top: 16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFffebee),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFf44336), width: 1),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Color(0xFFf44336), size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Invalid or expired reset link",
+                        style: TextStyle(
+                          color: Color(0xFFc62828),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      TextButton(
+                        onPressed: () => context.go('/forgot-password'),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          'Request a new password reset link',
+                          style: TextStyle(
+                            color: Color(0xFF0A2463),
+                            fontSize: 14,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -437,6 +473,17 @@ class ResetPasswordScreen extends ConsumerWidget {
           color: Color(0xFF0A2463),
           fontWeight: FontWeight.w500,
         ),
+      ),
+    );
+  }
+
+  void _showSnackBar(BuildContext context, String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
