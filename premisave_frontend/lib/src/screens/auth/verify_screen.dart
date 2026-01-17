@@ -1,204 +1,100 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../config/app_config.dart';
-import '../../utils/toast_utils.dart';
+import '../../providers/auth/auth_provider.dart';
 import '../public/contact_content.dart';
 
-class VerifyScreen extends StatefulWidget {
+class VerifyScreen extends ConsumerStatefulWidget {
   final String? verificationToken;
 
   const VerifyScreen({super.key, this.verificationToken});
 
   @override
-  State<VerifyScreen> createState() => _VerifyScreenState();
+  ConsumerState<VerifyScreen> createState() => _VerifyScreenState();
 }
 
-class _VerifyScreenState extends State<VerifyScreen> {
-  final Dio _dio = Dio(BaseOptions(baseUrl: AppConfig.baseUrl));
+class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   final TextEditingController _emailController = TextEditingController();
-  bool _isLoading = false;
   bool _isVerified = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    print('DEBUG: VerifyScreen init with token: ${widget.verificationToken}');
-
     if (widget.verificationToken != null) {
-      _testBackendConnection();
       _verifyToken();
     }
   }
 
   Future<void> _verifyToken() async {
-    if (_isLoading) return;
-
-    print('DEBUG: Starting verification...');
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
     try {
-      print('DEBUG: Calling backend: ${AppConfig.baseUrl}/auth/verify/${widget.verificationToken}');
-
-      final response = await _dio.get(
-        '/auth/verify/${widget.verificationToken}',
-        options: Options(responseType: ResponseType.plain),
-      );
-
-      print('DEBUG: Response status: ${response.statusCode}');
-      print('DEBUG: Response data: ${response.data}');
-
-      if (response.statusCode == 200) {
-        print('DEBUG: Verification successful!');
-        ToastUtils.showSuccessToast('Account verified successfully!');
-        setState(() {
-          _isVerified = true;
-          _isLoading = false;
-        });
-
-        // Wait 2 seconds then redirect
-        await Future.delayed(const Duration(seconds: 2));
-        if (mounted) {
-          print('DEBUG: Redirecting to login...');
-          context.go('/login');
-        }
-      }
-    } on DioException catch (e) {
-      print('DEBUG: DioException: ${e.message}');
-      print('DEBUG: Status code: ${e.response?.statusCode}');
-      print('DEBUG: Response data: ${e.response?.data}');
-
-      String errorMessage = 'Verification failed';
-
-      if (e.response?.statusCode == 404) {
-        errorMessage = 'Invalid or expired verification link';
-      } else if (e.response?.statusCode == 400) {
-        errorMessage = 'Account already verified';
-      } else if (e.type == DioExceptionType.connectionTimeout) {
-        errorMessage = 'Connection timeout. Please check your internet.';
-      } else if (e.type == DioExceptionType.connectionError) {
-        errorMessage = 'Cannot connect to server. Please try again later.';
-      }
-
-      print('DEBUG: Setting error: $errorMessage');
-      setState(() {
-        _error = errorMessage;
-        _isLoading = false;
-      });
-
-      ToastUtils.showErrorToast(errorMessage);
+      await ref.read(authProvider.notifier).verifyEmailToken(widget.verificationToken!);
+      setState(() => _isVerified = true);
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) context.go('/login');
     } catch (e) {
-      print('DEBUG: General exception: $e');
-      setState(() {
-        _error = 'An unexpected error occurred';
-        _isLoading = false;
-      });
-      ToastUtils.showErrorToast('An unexpected error occurred');
-    }
-  }
-
-  Future<void> _testBackendConnection() async {
-    print('DEBUG: Testing backend connection to ${AppConfig.baseUrl}');
-    try {
-      final response = await _dio.get('/auth/test');
-      print('DEBUG: Backend is reachable: ${response.statusCode}');
-    } catch (e) {
-      print('DEBUG: Cannot reach backend: $e');
-      // Try with a direct ping
-      try {
-        final response = await _dio.get('http://localhost:8080');
-        print('DEBUG: Direct ping to localhost:8080: ${response.statusCode}');
-      } catch (e2) {
-        print('DEBUG: Cannot even ping localhost: $e2');
-      }
+      setState(() => _error = e.toString());
     }
   }
 
   Future<void> _resendActivation() async {
-    final email = _emailController.text.trim();
-
-    if (email.isEmpty) {
-      ToastUtils.showErrorToast('Please enter your email address');
-      return;
-    }
-
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
-      ToastUtils.showErrorToast('Please enter a valid email address');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      await _dio.post(
-        '/auth/resend-activation/$email',
-        options: Options(responseType: ResponseType.plain),
-      );
-      ToastUtils.showSuccessToast('Activation email resent! Check your inbox.');
-    } on DioException catch (e) {
-      String errorMessage = 'Failed to resend activation email';
-      if (e.response?.statusCode == 404) {
-        errorMessage = 'No account found with this email';
-      } else if (e.response?.statusCode == 400) {
-        errorMessage = 'Account already verified';
-      }
-      ToastUtils.showErrorToast(errorMessage);
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    await ref.read(authProvider.notifier).resendActivationEmail(_emailController.text.trim());
   }
 
   void _showContactDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Contact Support'),
-        content: const SizedBox(
-          width: double.maxFinite,
-          child: ContactContent(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Contact Support', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, size: 24),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const ContactContent(),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLargeScreen = MediaQuery.of(context).size.width > 700;
-
-    print('DEBUG: Building widget. isLoading: $_isLoading, isVerified: $_isVerified, error: $_error');
+    final authState = ref.watch(authProvider);
+    final isLoading = authState.isLoading;
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFf8f9fa), Color(0xFFe9ecef)],
+            colors: [Colors.blue.shade50, Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
         child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Container(
-              width: isLargeScreen ? 600 : double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 6)),
-                ],
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 500),
+            margin: const EdgeInsets.all(20),
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: _buildContent(authState, isLoading),
               ),
-              child: _buildContent(),
             ),
           ),
         ),
@@ -206,136 +102,221 @@ class _VerifyScreenState extends State<VerifyScreen> {
     );
   }
 
-  Widget _buildContent() {
-    // If token is provided, show verification status
-    if (widget.verificationToken != null) {
-      if (_isLoading) {
-        return const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: Color(0xFF0A2463)),
-            SizedBox(height: 20),
-            Text('Verifying your account...', style: TextStyle(fontSize: 16)),
-          ],
-        );
-      }
+  Widget _buildContent(AuthState authState, bool isLoading) {
+    final hasToken = widget.verificationToken != null;
 
-      if (_isVerified) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 80),
-            const SizedBox(height: 20),
-            const Text(
-              'Account Verified!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
-            ),
-            const SizedBox(height: 10),
-            const Text('You can now login to your account', style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () => context.go('/login'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0A2463),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              ),
-              child: const Text('Go to Login', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      }
-
-      if (_error != null) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 80),
-            const SizedBox(height: 20),
-            const Text(
-              'Verification Failed',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              _error!,
-              style: const TextStyle(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 30),
-            _buildResendForm(),
-          ],
-        );
-      }
+    if (hasToken && isLoading) {
+      return _buildVerifyingState();
     }
 
-    // Default view (no token or verification not yet started)
+    if (hasToken && _isVerified) {
+      return _buildSuccessState();
+    }
+
+    if (hasToken && _error != null) {
+      return _buildErrorState();
+    }
+
+    return _buildResendForm(isLoading);
+  }
+
+  Widget _buildVerifyingState() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.verified_user_outlined, color: Color(0xFF0A2463), size: 70),
         const SizedBox(height: 20),
-        const Text(
-          'Verify Your Email',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0A2463)),
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0A2463)),
+              strokeWidth: 4,
+            ),
+            const Positioned.fill(
+              child: Center(
+                child: Icon(Icons.verified_outlined, color: Colors.blue, size: 50),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 32),
         const Text(
-          'Enter your email to resend the verification link',
-          style: TextStyle(color: Colors.black54),
+          'Verifying Your Account',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Please wait while we confirm your email address',
+          style: TextStyle(color: Colors.black54, fontSize: 16),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 30),
-        _buildResendForm(),
       ],
     );
   }
 
-  Widget _buildResendForm() {
+  Widget _buildSuccessState() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
+        Container(
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.green.shade200, width: 4),
+          ),
+          child: const Icon(Icons.check_circle, color: Colors.green, size: 70),
+        ),
+        const SizedBox(height: 32),
+        const Text(
+          'Email Verified!',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Your account has been successfully verified. You can now sign in.',
+          style: TextStyle(color: Colors.black54, fontSize: 16),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 32),
+        ElevatedButton(
+          onPressed: () => context.go('/login'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 56),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Go to Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              SizedBox(width: 8),
+              Icon(Icons.arrow_forward, size: 20),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.red.shade200, width: 4),
+          ),
+          child: const Icon(Icons.error_outline, color: Colors.red, size: 70),
+        ),
+        const SizedBox(height: 32),
+        const Text(
+          'Verification Failed',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.red),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          _error ?? 'An error occurred during verification',
+          style: const TextStyle(color: Colors.black54, fontSize: 16),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 32),
+        _buildResendForm(false),
+      ],
+    );
+  }
+
+  Widget _buildResendForm(bool isLoading) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.mail_outline, size: 80, color: Color(0xFF0A2463)),
+        const SizedBox(height: 24),
+        const Text(
+          'Resend Verification Email',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Enter your email address to receive a new verification link',
+          style: TextStyle(color: Colors.black54, fontSize: 16),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 32),
         TextField(
           controller: _emailController,
           decoration: InputDecoration(
             labelText: 'Email Address',
-            hintText: 'Enter the email you used to register',
-            prefixIcon: const Icon(Icons.email),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            hintText: 'you@example.com',
+            prefixIcon: const Icon(Icons.email_outlined),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Colors.grey.shade50,
           ),
           keyboardType: TextInputType.emailAddress,
         ),
-        const SizedBox(height: 20),
-
-        _isLoading
-            ? const CircularProgressIndicator(color: Color(0xFF0A2463))
-            : ElevatedButton.icon(
-          icon: const Icon(Icons.email, color: Colors.white),
-          label: const Text('Resend Activation Email'),
+        const SizedBox(height: 24),
+        ElevatedButton(
+          onPressed: isLoading ? null : _resendActivation,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF0A2463),
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-            minimumSize: const Size(double.infinity, 48),
+            foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 56),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           ),
-          onPressed: _resendActivation,
+          child: isLoading
+              ? const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+          )
+              : const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.send_outlined, size: 20),
+              SizedBox(width: 8),
+              Text('Send Verification Email', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
-
-        OutlinedButton.icon(
-          icon: const Icon(Icons.support_agent, color: Color(0xFF0A2463)),
-          label: const Text('Contact Support'),
+        OutlinedButton(
+          onPressed: _showContactDialog,
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-            minimumSize: const Size(double.infinity, 48),
+            minimumSize: const Size(double.infinity, 56),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             side: const BorderSide(color: Color(0xFF0A2463)),
           ),
-          onPressed: _showContactDialog,
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.support_agent_outlined, color: Color(0xFF0A2463), size: 20),
+              SizedBox(width: 8),
+              Text('Contact Support', style: TextStyle(color: Color(0xFF0A2463), fontWeight: FontWeight.w600)),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
-
         TextButton(
           onPressed: () => context.go('/login'),
-          child: const Text('Back to Login'),
+          child: const Text('Back to Login', style: TextStyle(color: Colors.blue)),
         ),
       ],
     );

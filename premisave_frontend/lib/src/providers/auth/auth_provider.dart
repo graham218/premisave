@@ -173,62 +173,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> resendActivation(String email) async {
+
+  Future<void> verifyEmailToken(String verificationToken) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _dio.post('/auth/resend-activation/$email');
-      ToastUtils.showSuccessToast('Activation email resent! Check your inbox.');
-      state = state.copyWith(isLoading: false);
-    } on DioException catch (e) {
-      String errorMessage = 'Failed to resend activation email';
-
-      if (e.response?.statusCode == 404) {
-        errorMessage = 'No account found with this email';
-      } else if (e.response?.statusCode == 400) {
-        errorMessage = 'Account already verified';
-      } else {
-        errorMessage = _getUserFriendlyErrorMessage(e);
-      }
-
-      ToastUtils.showErrorToast(errorMessage);
-      state = state.copyWith(error: errorMessage, isLoading: false);
-    } catch (e) {
-      ToastUtils.showErrorToast('An unexpected error occurred');
-      state = state.copyWith(error: 'An unexpected error occurred', isLoading: false);
-    }
-  }
-
-  Future<void> verifyAccount(String token) async {
-    print('PROVIDER: Starting verification for token: $token');
-    state = state.copyWith(isLoading: true, error: null, shouldRedirectToLogin: false);
-
-    try {
-      print('PROVIDER: Calling /auth/verify/$token');
+      print('DEBUG: Calling backend: /auth/verify/$verificationToken');
 
       final response = await _dio.get(
-        '/auth/verify/$token',
+        '/auth/verify/$verificationToken',
         options: Options(responseType: ResponseType.plain),
       );
 
-      print('PROVIDER: Response status: ${response.statusCode}');
-      print('PROVIDER: Response data: ${response.data}');
+      print('DEBUG: Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        print('PROVIDER: Verification successful');
+        print('DEBUG: Verification successful!');
+        ToastUtils.showSuccessToast('Account verified successfully!');
+
         state = state.copyWith(
           isLoading: false,
-          shouldRedirectToLogin: true,
         );
-      } else {
-        throw DioException(
-          requestOptions: response.requestOptions,
-          response: response,
-          type: DioExceptionType.badResponse,
-        );
+
+        return Future.value();
       }
     } on DioException catch (e) {
-      print('PROVIDER: DioException: ${e.message}');
-      print('PROVIDER: Status code: ${e.response?.statusCode}');
+      print('DEBUG: DioException: ${e.message}');
+      print('DEBUG: Status code: ${e.response?.statusCode}');
 
       String errorMessage = 'Verification failed';
 
@@ -240,29 +210,69 @@ class AuthNotifier extends StateNotifier<AuthState> {
         errorMessage = 'Connection timeout. Please check your internet.';
       } else if (e.type == DioExceptionType.connectionError) {
         errorMessage = 'Cannot connect to server. Please try again later.';
-      } else {
-        final responseData = e.response?.data;
-        if (responseData is String && responseData.isNotEmpty) {
-          errorMessage = responseData;
-        }
       }
 
-      print('PROVIDER: Setting error: $errorMessage');
-      state = state.copyWith(
-        error: errorMessage,
-        isLoading: false,
-        shouldRedirectToLogin: false,
-      );
+      ToastUtils.showErrorToast(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
+      throw Exception(errorMessage);
     } catch (e) {
-      print('PROVIDER: General exception: $e');
-      state = state.copyWith(
-        error: 'An unexpected error occurred',
-        isLoading: false,
-        shouldRedirectToLogin: false,
-      );
+      print('DEBUG: General exception: $e');
+      const errorMessage = 'An unexpected error occurred';
+      ToastUtils.showErrorToast(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
+      throw Exception(errorMessage);
     }
   }
 
+  Future<void> resendActivationEmail(String email) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    if (email.isEmpty) {
+      ToastUtils.showErrorToast('Please enter your email address');
+      state = state.copyWith(isLoading: false);
+      return;
+    }
+
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+      ToastUtils.showErrorToast('Please enter a valid email address');
+      state = state.copyWith(isLoading: false);
+      return;
+    }
+
+    try {
+      await _dio.post(
+        '/auth/resend-activation/$email',
+        options: Options(responseType: ResponseType.plain),
+      );
+      ToastUtils.showSuccessToast('Activation email resent! Check your inbox.');
+      state = state.copyWith(isLoading: false);
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to resend activation email';
+      if (e.response?.statusCode == 404) {
+        errorMessage = 'No account found with this email';
+      } else if (e.response?.statusCode == 400) {
+        errorMessage = 'Account already verified';
+      }
+      ToastUtils.showErrorToast(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
+    } catch (e) {
+      const errorMessage = 'An unexpected error occurred';
+      ToastUtils.showErrorToast(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
+    }
+  }
+
+// Method to test backend connection if needed
+  Future<void> testBackendConnection() async {
+    print('DEBUG: Testing backend connection');
+    try {
+      final response = await _dio.get('/auth/test');
+      print('DEBUG: Backend is reachable: ${response.statusCode}');
+    } catch (e) {
+      print('DEBUG: Cannot reach backend: $e');
+      rethrow;
+    }
+  }
 
   Future<void> signIn(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -617,23 +627,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       ToastUtils.showErrorToast('Failed to upload image. Please try again.');
       rethrow;
-    }
-  }
-
-  Future<void> _testBackendConnection() async {
-    print('DEBUG: Testing backend connection to ${AppConfig.baseUrl}');
-    try {
-      final response = await _dio.get('/auth/test');
-      print('DEBUG: Backend is reachable: ${response.statusCode}');
-    } catch (e) {
-      print('DEBUG: Cannot reach backend: $e');
-      // Try with a direct ping
-      try {
-        final response = await _dio.get('http://localhost:8080');
-        print('DEBUG: Direct ping to localhost:8080: ${response.statusCode}');
-      } catch (e2) {
-        print('DEBUG: Cannot even ping localhost: $e2');
-      }
     }
   }
 
