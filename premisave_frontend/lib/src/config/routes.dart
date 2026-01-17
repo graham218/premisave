@@ -17,12 +17,10 @@ import '../services/secure_storage.dart';
 final GoRouter router = GoRouter(
   initialLocation: '/',
   redirect: (context, state) async {
-    // Get auth state from storage directly
     final token = await SecureStorage.getToken();
     final role = await SecureStorage.getRole();
     final isAuthenticated = token != null;
 
-    // Define public routes
     final publicRoutes = [
       '/',
       '/splash',
@@ -31,14 +29,12 @@ final GoRouter router = GoRouter(
       '/forgot-password',
       '/reset-password',
       '/verify',
+      '/verify/:token',
     ];
 
-    // Use uri.path to get the current path
     final currentLocation = state.uri.path;
 
-    // If authenticated and trying to access public route
     if (isAuthenticated && publicRoutes.contains(currentLocation)) {
-      // Redirect to appropriate dashboard
       switch (role?.toUpperCase()) {
         case 'CLIENT': return '/dashboard/client';
         case 'HOME_OWNER': return '/dashboard/home-owner';
@@ -50,7 +46,6 @@ final GoRouter router = GoRouter(
       }
     }
 
-    // Define private routes
     final privateRoutes = [
       '/dashboard/client',
       '/dashboard/home-owner',
@@ -61,7 +56,6 @@ final GoRouter router = GoRouter(
       '/profile',
     ];
 
-    // If not authenticated and trying to access private route
     if (!isAuthenticated && privateRoutes.contains(currentLocation)) {
       return '/login';
     }
@@ -69,16 +63,23 @@ final GoRouter router = GoRouter(
     return null;
   },
   routes: [
-    // Root route
     GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
-
-    // All other routes
     GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
     GoRoute(path: '/signup', builder: (_, __) => const SignupScreen()),
     GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
     GoRoute(path: '/reset-password', builder: (_, __) => const ResetPasswordScreen()),
-    GoRoute(path: '/verify', builder: (_, __) => const VerifyScreen()),
+    GoRoute(
+      path: '/verify',
+      builder: (_, __) => const VerifyScreen(),
+    ),
+    GoRoute(
+      path: '/verify/:token',
+      builder: (_, state) {
+        final token = state.pathParameters['token'];
+        return VerifyScreen(verificationToken: token);
+      },
+    ),
     GoRoute(path: '/dashboard/client', builder: (_, __) => const ClientDashboard()),
     GoRoute(path: '/dashboard/home-owner', builder: (_, __) => const HomeOwnerDashboard()),
     GoRoute(path: '/dashboard/admin', builder: (_, __) => const AdminDashboard()),

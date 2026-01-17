@@ -173,6 +173,59 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> resendActivation(String email) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _dio.post('/auth/resend-activation/$email');
+      ToastUtils.showSuccessToast('Activation email resent! Check your inbox.');
+      state = state.copyWith(isLoading: false);
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to resend activation email';
+
+      if (e.response?.statusCode == 404) {
+        errorMessage = 'No account found with this email';
+      } else if (e.response?.statusCode == 400) {
+        errorMessage = 'Account already verified';
+      } else {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+      }
+
+      ToastUtils.showErrorToast(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
+    } catch (e) {
+      ToastUtils.showErrorToast('An unexpected error occurred');
+      state = state.copyWith(error: 'An unexpected error occurred', isLoading: false);
+    }
+  }
+
+
+  Future<void> verifyAccount(String token) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _dio.get('/auth/verify/$token');
+      ToastUtils.showSuccessToast('Account verified successfully!');
+      state = state.copyWith(isLoading: false, shouldRedirectToLogin: true);
+    } on DioException catch (e) {
+      String errorMessage = 'Verification failed';
+
+      if (e.response?.statusCode == 404) {
+        errorMessage = 'Invalid or expired verification token';
+      } else if (e.response?.statusCode == 400) {
+        errorMessage = 'Account already verified';
+      } else {
+        errorMessage = _getUserFriendlyErrorMessage(e);
+      }
+
+      ToastUtils.showErrorToast(errorMessage);
+      state = state.copyWith(error: errorMessage, isLoading: false);
+    } catch (e) {
+      ToastUtils.showErrorToast('An unexpected error occurred');
+      state = state.copyWith(error: 'An unexpected error occurred', isLoading: false);
+    }
+  }
+
+
+
   Future<void> signIn(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {

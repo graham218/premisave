@@ -81,22 +81,22 @@ class ResetPasswordScreen extends ConsumerWidget {
               Expanded(
                 flex: 1,
                 child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0A2463),
-                    borderRadius: const BorderRadius.only(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0A2463),
+                    borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(16),
                       bottomLeft: Radius.circular(16),
                     ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(40),
+                  child: const Padding(
+                    padding: EdgeInsets.all(40),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.real_estate_agent, color: Colors.white, size: 80),
-                        const SizedBox(height: 24),
-                        const Text(
+                        Icon(Icons.real_estate_agent, color: Colors.white, size: 80),
+                        SizedBox(height: 24),
+                        Text(
                           "Secure Your Premisave Account",
                           style: TextStyle(
                             color: Colors.white,
@@ -105,31 +105,31 @@ class ResetPasswordScreen extends ConsumerWidget {
                             height: 1.3,
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
+                        SizedBox(height: 16),
+                        Text(
                           "Update your password to keep your real estate investments secure. "
                               "We recommend using a strong, unique password.",
                           style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.5),
                         ),
-                        const SizedBox(height: 30),
+                        SizedBox(height: 30),
                         Row(
-                          children: const [
+                          children: [
                             Icon(Icons.security, color: Colors.white70, size: 20),
                             SizedBox(width: 10),
                             Text("End-to-end encryption", style: TextStyle(color: Colors.white70)),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        SizedBox(height: 10),
                         Row(
-                          children: const [
+                          children: [
                             Icon(Icons.lock_clock, color: Colors.white70, size: 20),
                             SizedBox(width: 10),
                             Text("Regular security updates", style: TextStyle(color: Colors.white70)),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        SizedBox(height: 10),
                         Row(
-                          children: const [
+                          children: [
                             Icon(Icons.verified_user, color: Colors.white70, size: 20),
                             SizedBox(width: 10),
                             Text("Protected investment data", style: TextStyle(color: Colors.white70)),

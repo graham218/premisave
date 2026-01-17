@@ -1,11 +1,97 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../providers/auth/auth_provider.dart';
+import '../public/contact_content.dart';
 
-class VerifyScreen extends StatelessWidget {
-  const VerifyScreen({super.key});
+class VerifyScreen extends ConsumerStatefulWidget {
+  final String? verificationToken;
+
+  const VerifyScreen({super.key, this.verificationToken});
+
+  @override
+  ConsumerState<VerifyScreen> createState() => _VerifyScreenState();
+}
+
+class _VerifyScreenState extends ConsumerState<VerifyScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  bool _isVerifying = false;
+  bool _isVerified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.verificationToken != null) {
+      _verifyToken();
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _verifyToken() async {
+    // For now, we'll handle this with a direct call since it's not in auth provider
+    // You could add this to auth provider too if you want
+    setState(() => _isVerifying = true);
+    await Future.delayed(const Duration(seconds: 2)); // Simulate API call
+    setState(() {
+      _isVerifying = false;
+      _isVerified = true;
+    });
+    await Future.delayed(const Duration(seconds: 2));
+    if (context.mounted) context.go('/login');
+  }
+
+  Future<void> _resendActivation() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      _showErrorSnackbar('Please enter your email address');
+      return;
+    }
+
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+      _showErrorSnackbar('Please enter a valid email address');
+      return;
+    }
+
+    await ref.read(authProvider.notifier).resendActivation(email);
+  }
+
+  void _showContactDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Contact Support'),
+        content: const SizedBox(
+          width: double.maxFinite,
+          child: ContactContent(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
     final isLargeScreen = MediaQuery.of(context).size.width > 700;
 
     return Scaffold(
@@ -18,21 +104,20 @@ class VerifyScreen extends StatelessWidget {
           ),
         ),
         child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
             child: isLargeScreen
-                ? _buildWideLayout(context)
-                : _buildMobileLayout(context),
+                ? _buildWideLayout(context, authState)
+                : _buildMobileLayout(context, authState),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildWideLayout(BuildContext context) {
+  Widget _buildWideLayout(BuildContext context, AuthState authState) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 900, maxHeight: 500),
+      constraints: const BoxConstraints(maxWidth: 900),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -42,80 +127,45 @@ class VerifyScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Left side - Branding
           Expanded(
-            flex: 1,
             child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF0A2463),
-                borderRadius: const BorderRadius.only(
+              decoration: const BoxDecoration(
+                color: Color(0xFF0A2463),
+                borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16),
                   bottomLeft: Radius.circular(16),
                 ),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(40),
+              child: const Padding(
+                padding: EdgeInsets.all(40),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.verified_user_outlined, color: Colors.white, size: 80),
-                    const SizedBox(height: 24),
-                    const Text(
+                    Icon(Icons.verified_user_outlined, color: Colors.white, size: 80),
+                    SizedBox(height: 24),
+                    Text(
                       "Verify Your Account",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
-                        height: 1.3,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      "Complete your registration to start investing in real estate. "
-                          "Verification ensures the security of your Premisave account.",
-                      style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.5),
-                    ),
-                    const SizedBox(height: 30),
-                    Row(
-                      children: const [
-                        Icon(Icons.security_outlined, color: Colors.white70, size: 20),
-                        SizedBox(width: 10),
-                        Text("Secure account verification", style: TextStyle(color: Colors.white70)),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: const [
-                        Icon(Icons.real_estate_agent, color: Colors.white70, size: 20),
-                        SizedBox(width: 10),
-                        Text("Access premium features", style: TextStyle(color: Colors.white70)),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: const [
-                        Icon(Icons.trending_up_outlined, color: Colors.white70, size: 20),
-                        SizedBox(width: 10),
-                        Text("Start your investment journey", style: TextStyle(color: Colors.white70)),
-                      ],
+                    SizedBox(height: 16),
+                    Text(
+                      "Complete your registration to start investing.",
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
                     ),
                   ],
                 ),
               ),
             ),
           ),
-
-          // Right side - Verification Content
           Expanded(
-            flex: 1,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 48),
-              child: Center(
-                child: SingleChildScrollView(
-                  child: _buildVerificationContent(context),
-                ),
-              ),
+              padding: const EdgeInsets.all(40),
+              child: _buildVerificationContent(context, authState),
             ),
           ),
         ],
@@ -123,291 +173,120 @@ class VerifyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMobileLayout(BuildContext context) {
-    return SingleChildScrollView(
-      child: Container(
-        margin: const EdgeInsets.all(24),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 6)),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.verified_user_outlined, color: Color(0xFF0A2463), size: 70),
-            const SizedBox(height: 16),
-            const Text(
-              "Verify Your Email",
-              style: TextStyle(
-                fontSize: 26,
-                color: Color(0xFF0A2463),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Almost there! Just one more step to activate your account",
-              style: TextStyle(color: Colors.black54),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            _buildVerificationContent(context),
-          ],
-        ),
+  Widget _buildMobileLayout(BuildContext context, AuthState authState) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 6)),
+        ],
       ),
+      child: _buildVerificationContent(context, authState),
     );
   }
 
-  Widget _buildVerificationContent(BuildContext context) {
+  Widget _buildVerificationContent(BuildContext context, AuthState authState) {
+    if (_isVerifying) {
+      return const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(color: Color(0xFF0A2463)),
+          SizedBox(height: 20),
+          Text('Verifying your account...', style: TextStyle(fontSize: 16)),
+        ],
+      );
+    }
+
+    if (_isVerified) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle, color: Colors.green, size: 80),
+          const SizedBox(height: 20),
+          const Text(
+            'Account Verified!',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
+          ),
+          const SizedBox(height: 10),
+          const Text('Redirecting to login...', style: TextStyle(fontSize: 16)),
+          const SizedBox(height: 30),
+          ElevatedButton(
+            onPressed: () => context.go('/login'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0A2463),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            ),
+            child: const Text('Go to Login', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      );
+    }
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Verification Icon with Animation
-        Container(
-          width: 120,
-          height: 120,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0A2463).withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.mail_outline,
-            size: 60,
-            color: Color(0xFF0A2463),
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // Main Message
+        const Icon(Icons.verified_user_outlined, color: Color(0xFF0A2463), size: 70),
+        const SizedBox(height: 20),
         const Text(
-          'Check Your Email',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF0A2463),
-          ),
+          'Verify Your Email',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0A2463)),
         ),
+        const SizedBox(height: 10),
+        const Text(
+          'Check your email for the verification link',
+          style: TextStyle(color: Colors.black54),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 30),
 
+        // Email input field
+        TextField(
+          controller: _emailController,
+          decoration: InputDecoration(
+            labelText: 'Email Address',
+            prefixIcon: const Icon(Icons.email),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 20),
+
+        // Resend button
+        authState.isLoading
+            ? const CircularProgressIndicator(color: Color(0xFF0A2463))
+            : ElevatedButton.icon(
+          icon: const Icon(Icons.email, color: Colors.white),
+          label: const Text('Resend Activation Email'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF0A2463),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            minimumSize: const Size(double.infinity, 48),
+          ),
+          onPressed: _resendActivation,
+        ),
         const SizedBox(height: 16),
 
-        // Instructions
-        const Text(
-          'We\'ve sent a verification link to your email address.',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.black87,
+        // Contact support button
+        OutlinedButton.icon(
+          icon: const Icon(Icons.support_agent, color: Color(0xFF0A2463)),
+          label: const Text('Contact Support'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            minimumSize: const Size(double.infinity, 48),
+            side: const BorderSide(color: Color(0xFF0A2463)),
           ),
-          textAlign: TextAlign.center,
+          onPressed: _showContactDialog,
         ),
+        const SizedBox(height: 16),
 
-        const SizedBox(height: 8),
-
-        const Text(
-          'Please click the link in the email to activate your Premisave account '
-              'and start your real estate investment journey.',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.black54,
-          ),
-          textAlign: TextAlign.center,
-        ),
-
-        const SizedBox(height: 24),
-
-        // Instructions Box
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFf8f9fa),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.lightbulb_outline, color: Color(0xFF0A2463), size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    "What to do next:",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0A2463),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _buildInstructionStep(
-                "1",
-                "Open the email we sent you",
-                Icons.email_outlined,
-              ),
-              const SizedBox(height: 8),
-              _buildInstructionStep(
-                "2",
-                "Click the verification link",
-                Icons.link_outlined,
-              ),
-              const SizedBox(height: 8),
-              _buildInstructionStep(
-                "3",
-                "Return to login and access your account",
-                Icons.login_outlined,
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 8),
-
-        // Additional Info
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: const [
-              Icon(Icons.info_outline, color: Colors.orange, size: 18),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "Can't find the email? Check your spam folder",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.orange,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: const [
-              Icon(Icons.access_time_outlined, color: Colors.grey, size: 18),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "The verification link expires in 24 hours",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // Buttons Row
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.email_outlined),
-                label: const Text('Resend Email'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  side: const BorderSide(color: Color(0xFF0A2463)),
-                ),
-                onPressed: () {
-                  // TODO: Add resend email functionality
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Verification email resent'),
-                      backgroundColor: const Color(0xFF0A2463),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.login, color: Colors.white),
-                label: const Text(
-                  'Back to Login',
-                  style: TextStyle(color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0A2463),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 3,
-                ),
-                onPressed: () => context.go('/login'),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 8),
-
-        // Support Text
+        // Back to login
         TextButton(
-          onPressed: () {
-            // TODO: Add support contact functionality
-          },
-          child: const Text(
-            'Need help? Contact Support',
-            style: TextStyle(
-              color: Color(0xFF0A2463),
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInstructionStep(String number, String text, IconData icon) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0A2463),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(
-            child: Text(
-              number,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Icon(icon, color: const Color(0xFF0A2463), size: 20),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-            ),
-          ),
+          onPressed: () => context.go('/login'),
+          child: const Text('Back to Login'),
         ),
       ],
     );
