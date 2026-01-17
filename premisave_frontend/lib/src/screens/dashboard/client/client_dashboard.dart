@@ -170,7 +170,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
 
   Widget _buildDesktopNavigation() {
     // Reduce to 4 visible items on larger screens
-    final maxVisibleItems = 4;
+    final maxVisibleItems = 3;
     final visibleItems = _menuItems.take(maxVisibleItems).toList();
     final hiddenItems = _menuItems.sublist(maxVisibleItems);
 
@@ -287,10 +287,6 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
         onSelected: (value) {
           if (value == 'profile') {
             context.push('/profile');
-          } else if (value == 'account') {
-            context.push('/client/account');
-          } else if (value == 'help') {
-            context.push('/client/help');
           } else if (value == 'about') {
             _navigateToRoute('/client/about');
           } else if (value == 'contact') {
@@ -386,11 +382,6 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
             ),
           ),
           const PopupMenuDivider(),
-          const PopupMenuItem<String>(
-            value: 'account',
-            child: ListTile(
-                leading: Icon(Icons.settings), title: Text('Account settings')),
-          ),
           PopupMenuItem<String>(
             value: 'language',
             child: ListTile(
@@ -405,11 +396,6 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
               title: const Text('Language & Currency'),
               subtitle: const Text('EN | KES'),
             ),
-          ),
-          const PopupMenuItem<String>(
-            value: 'help',
-            child:
-            ListTile(leading: Icon(Icons.help), title: Text('Help Center')),
           ),
           const PopupMenuItem<String>(
             value: 'about',
