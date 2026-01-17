@@ -3,7 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-import 'firebase_options.dart';
+import 'src/config/firebase_options.dart';
 import 'src/app.dart';
 import 'src/providers/auth/auth_provider.dart';
 import 'src/services/notification_service.dart';
