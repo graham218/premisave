@@ -3,264 +3,295 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth/auth_provider.dart';
 
-class ResetPasswordScreen extends ConsumerWidget {
+class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String? resetToken;
 
   const ResetPasswordScreen({super.key, this.resetToken});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
-    final newPasswordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
+  ConsumerState<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+}
 
-    final isLargeScreen = MediaQuery.of(context).size.width > 700;
+class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
+  late final TextEditingController _newPasswordController;
+  late final TextEditingController _confirmPasswordController;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _newPasswordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _toggleNewPasswordVisibility() => setState(() => _obscureNewPassword = !_obscureNewPassword);
+  void _toggleConfirmPasswordVisibility() => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+
+  Future<void> _submitForm(AuthNotifier authNotifier) async {
+    if (_newPasswordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
+      _showSnackBar('Please fill in all fields', Colors.red);
+      return;
+    }
+
+    if (_newPasswordController.text != _confirmPasswordController.text) {
+      _showSnackBar('Passwords do not match', Colors.red);
+      return;
+    }
+
+    if (widget.resetToken == null) {
+      _showSnackBar('Invalid or expired reset link', Colors.red);
+      return;
+    }
+
+    await authNotifier.confirmResetPassword(
+      widget.resetToken!,
+      _newPasswordController.text,
+      _confirmPasswordController.text,
+    );
+
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) {
+      context.go('/login');
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final authNotifier = ref.read(authProvider.notifier);
+    final isWideScreen = MediaQuery.of(context).size.width > 900;
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFf8f9fa), Color(0xFFe9ecef)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            colors: [Colors.green[50]!, Colors.blue[50]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
         child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: isLargeScreen
-                ? _buildWideLayout(
-              context,
-              authState.isLoading,
-              newPasswordController,
-              confirmPasswordController,
-              ref,
-            )
-                : _buildMobileLayout(
-              context,
-              authState.isLoading,
-              newPasswordController,
-              confirmPasswordController,
-              ref,
-            ),
+          child: Container(
+            constraints: BoxConstraints(maxWidth: isWideScreen ? 1000 : 400),
+            margin: const EdgeInsets.all(16),
+            child: isWideScreen ? _buildWideLayout(authState, authNotifier) : _buildMobileLayout(authState, authNotifier),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildWideLayout(
-      BuildContext context,
-      bool isLoading,
-      TextEditingController newPasswordController,
-      TextEditingController confirmPasswordController,
-      WidgetRef ref,
-      ) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool obscureNewPassword = true;
-        bool obscureConfirmPassword = true;
-
-        return Container(
-          constraints: const BoxConstraints(maxWidth: 900, maxHeight: 600),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [
-              BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 6)),
-            ],
+  Widget _buildWideLayout(AuthState authState, AuthNotifier authNotifier) {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        height: 600,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.green[100]!, Colors.blue[100]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          child: Row(
-            children: [
-              // Left side - Branding
-              Expanded(
-                flex: 1,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF0A2463),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      bottomLeft: Radius.circular(16),
-                    ),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(40),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.lock_reset, color: Colors.white, size: 80),
-                        SizedBox(height: 24),
-                        Text(
-                          "Reset Your Password",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            height: 1.3,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.green[400]!, Colors.blue[400]!],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
                           ),
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          "Create a new secure password for your Premisave account. "
-                              "Make sure it's strong and unique to protect your investments.",
-                          style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.5),
-                        ),
-                        SizedBox(height: 30),
-                        Row(
-                          children: [
-                            Icon(Icons.security, color: Colors.white70, size: 20),
-                            SizedBox(width: 10),
-                            Text("End-to-end encryption", style: TextStyle(color: Colors.white70)),
-                          ],
-                        ),
-                        SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Icon(Icons.lock_clock, color: Colors.white70, size: 20),
-                            SizedBox(width: 10),
-                            Text("24-hour reset link validity", style: TextStyle(color: Colors.white70)),
-                          ],
-                        ),
-                        SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Icon(Icons.verified_user, color: Colors.white70, size: 20),
-                            SizedBox(width: 10),
-                            Text("Protected investment data", style: TextStyle(color: Colors.white70)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Right side - Reset Form
-              Expanded(
-                flex: 1,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 48),
-                  child: Center(
-                    child: SingleChildScrollView(
-                      child: _buildPasswordForm(
-                        context,
-                        isLoading,
-                        obscureNewPassword,
-                        obscureConfirmPassword,
-                            () => setState(() => obscureNewPassword = !obscureNewPassword),
-                            () => setState(() => obscureConfirmPassword = !obscureConfirmPassword),
-                        newPasswordController,
-                        confirmPasswordController,
-                        ref,
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(30),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.lock_reset, size: 60, color: Colors.white),
+                          const SizedBox(height: 20),
+                          const Text(
+                            "Reset Your Password",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            "Create a new secure password for your Premisave account.",
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildFeatureRow("End-to-end encryption"),
+                          const SizedBox(height: 10),
+                          _buildFeatureRow("24-hour reset link validity"),
+                          const SizedBox(height: 10),
+                          _buildFeatureRow("Protected investment data"),
+                        ],
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
+            ),
+            Container(
+              width: 400,
+              padding: const EdgeInsets.all(40),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(-5, 0),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: _buildForm(authState, authNotifier),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(AuthState authState, AuthNotifier authNotifier) {
+    return SingleChildScrollView(
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.green[50]!, Colors.blue[50]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Icon(Icons.lock_reset, size: 50, color: Colors.green[700]),
+                    const SizedBox(height: 10),
+                    Text(
+                      "Reset Password",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.green[800],
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      "Create a new secure password",
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildForm(authState, authNotifier),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _buildMobileLayout(
-      BuildContext context,
-      bool isLoading,
-      TextEditingController newPasswordController,
-      TextEditingController confirmPasswordController,
-      WidgetRef ref,
-      ) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool obscureNewPassword = true;
-        bool obscureConfirmPassword = true;
-
-        return SingleChildScrollView(
-          child: Container(
-            margin: const EdgeInsets.all(24),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
-                BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 6)),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.lock_reset, color: Color(0xFF0A2463), size: 70),
-                const SizedBox(height: 16),
-                const Text(
-                  "Create New Password",
-                  style: TextStyle(
-                    fontSize: 26,
-                    color: Color(0xFF0A2463),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "Enter a new secure password for your account",
-                  style: TextStyle(color: Colors.black54),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                _buildPasswordForm(
-                  context,
-                  isLoading,
-                  obscureNewPassword,
-                  obscureConfirmPassword,
-                      () => setState(() => obscureNewPassword = !obscureNewPassword),
-                      () => setState(() => obscureConfirmPassword = !obscureConfirmPassword),
-                  newPasswordController,
-                  confirmPasswordController,
-                  ref,
-                ),
-                const SizedBox(height: 20),
-                _buildBackToLoginLink(context),
-              ],
+  Widget _buildFeatureRow(String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.check_circle, color: Colors.white.withOpacity(0.9), size: 18),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 13,
             ),
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
-  Widget _buildPasswordForm(
-      BuildContext context,
-      bool isLoading,
-      bool obscureNewPassword,
-      bool obscureConfirmPassword,
-      VoidCallback toggleObscureNewPassword,
-      VoidCallback toggleObscureConfirmPassword,
-      TextEditingController newPasswordController,
-      TextEditingController confirmPasswordController,
-      WidgetRef ref,
-      ) {
+  Widget _buildForm(AuthState authState, AuthNotifier authNotifier) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Reset Token Info (if available)
-        if (resetToken != null)
+        if (widget.resetToken != null)
           Container(
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFe8f5e9),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF4caf50), width: 1),
+              color: Colors.green[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green[200]!),
             ),
             child: Row(
               children: [
-                const Icon(Icons.verified, color: Color(0xFF4caf50), size: 20),
+                Icon(Icons.verified, color: Colors.green[600], size: 20),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Text(
                     "Reset link verified. You can now set a new password.",
-                    style: TextStyle(color: Color(0xFF2e7d32), fontSize: 14),
+                    style: TextStyle(color: Colors.green[800], fontSize: 14),
                   ),
                 ),
               ],
@@ -268,190 +299,96 @@ class ResetPasswordScreen extends ConsumerWidget {
           ),
 
         // New Password
-        TextField(
-          controller: newPasswordController,
-          obscureText: obscureNewPassword,
-          enabled: !isLoading && resetToken != null,
+        TextFormField(
+          controller: _newPasswordController,
+          obscureText: _obscureNewPassword,
+          enabled: !authState.isLoading && widget.resetToken != null,
           decoration: InputDecoration(
             labelText: 'New Password',
-            hintText: 'Enter your new password',
-            prefixIcon: const Icon(Icons.lock_reset),
+            prefixIcon: const Icon(Icons.lock_outline),
             suffixIcon: IconButton(
-              icon: Icon(obscureNewPassword ? Icons.visibility : Icons.visibility_off),
-              onPressed: toggleObscureNewPassword,
+              icon: Icon(_obscureNewPassword ? Icons.visibility : Icons.visibility_off),
+              onPressed: _toggleNewPasswordVisibility,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
+          validator: (value) {
+            if (value == null || value.isEmpty) return 'Password is required';
+            if (value.length < 8) return 'Password must be at least 8 characters';
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // Confirm Password
+        TextFormField(
+          controller: _confirmPasswordController,
+          obscureText: _obscureConfirmPassword,
+          enabled: !authState.isLoading && widget.resetToken != null,
+          decoration: InputDecoration(
+            labelText: 'Confirm New Password',
+            prefixIcon: const Icon(Icons.lock_clock_outlined),
+            suffixIcon: IconButton(
+              icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+              onPressed: _toggleConfirmPasswordVisibility,
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) return 'Please confirm your password';
+            if (value != _newPasswordController.text) return 'Passwords do not match';
+            return null;
+          },
         ),
 
         const SizedBox(height: 16),
+        _buildPasswordRequirements(),
 
-        // Confirm New Password
-        TextField(
-          controller: confirmPasswordController,
-          obscureText: obscureConfirmPassword,
-          enabled: !isLoading && resetToken != null,
-          decoration: InputDecoration(
-            labelText: 'Confirm New Password',
-            hintText: 'Confirm your new password',
-            prefixIcon: const Icon(Icons.lock_clock_outlined),
-            suffixIcon: IconButton(
-              icon: Icon(obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
-              onPressed: toggleObscureConfirmPassword,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-
-        // Password Requirements
         const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFf8f9fa),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Password Requirements:",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0A2463),
-                ),
-              ),
-              SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.check_circle_outline, color: Colors.green, size: 16),
-                  SizedBox(width: 8),
-                  Text("At least 8 characters", style: TextStyle(fontSize: 14)),
-                ],
-              ),
-              SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.check_circle_outline, color: Colors.green, size: 16),
-                  SizedBox(width: 8),
-                  Text("Mix of letters and numbers", style: TextStyle(fontSize: 14)),
-                ],
-              ),
-              SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.check_circle_outline, color: Colors.green, size: 16),
-                  SizedBox(width: 8),
-                  Text("Include special characters", style: TextStyle(fontSize: 14)),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // Reset Password Button
         SizedBox(
           width: double.infinity,
-          child: ElevatedButton.icon(
-            icon: isLoading
-                ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            )
-                : const Icon(Icons.lock_reset, color: Colors.white),
-            label: Text(
-              isLoading ? 'Resetting Password...' : 'Reset Password',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
+          child: ElevatedButton(
+            onPressed: authState.isLoading ? null : () => _submitForm(authNotifier),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0A2463),
+              backgroundColor: Colors.green[600],
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 3,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 4,
             ),
-            onPressed: (isLoading || resetToken == null)
-                ? null
-                : () async {
-              if (newPasswordController.text.isEmpty ||
-                  confirmPasswordController.text.isEmpty) {
-                _showSnackBar(context, 'Please fill in all fields', Colors.red);
-                return;
-              }
-
-              await ref.read(authProvider.notifier).confirmResetPassword(
-                resetToken!,
-                newPasswordController.text,
-                confirmPasswordController.text,
-              );
-
-              // Success message is shown by the provider
-              // Navigate back to login after a delay
-              await Future.delayed(const Duration(seconds: 2));
-              if (context.mounted) {
-                context.go('/login');
-              }
-            },
+            child: authState.isLoading
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white))
+                : Text('Reset Password', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           ),
         ),
 
-        // Token Missing Warning
-        if (resetToken == null)
+        if (widget.resetToken == null) ...[
+          const SizedBox(height: 16),
           Container(
-            margin: const EdgeInsets.only(top: 16),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFffebee),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFf44336), width: 1),
+              color: Colors.red[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.red[200]!),
             ),
             child: Row(
               children: [
-                const Icon(Icons.error_outline, color: Color(0xFFf44336), size: 20),
+                Icon(Icons.error_outline, color: Colors.red[600], size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "Invalid or expired reset link",
-                        style: TextStyle(
-                          color: Color(0xFFc62828),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.red[800], fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 4),
                       TextButton(
                         onPressed: () => context.go('/forgot-password'),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: const Text(
+                        style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                        child: Text(
                           'Request a new password reset link',
-                          style: TextStyle(
-                            color: Color(0xFF0A2463),
-                            fontSize: 14,
-                            decoration: TextDecoration.underline,
-                          ),
+                          style: TextStyle(color: Colors.green[600]),
                         ),
                       ),
                     ],
@@ -460,30 +397,54 @@ class ResetPasswordScreen extends ConsumerWidget {
               ],
             ),
           ),
+        ],
+
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: TextButton(
+            onPressed: () => context.go('/login'),
+            child: Text("Back to Login", style: TextStyle(color: Colors.green[700])),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildBackToLoginLink(BuildContext context) {
-    return TextButton(
-      onPressed: () => context.go('/login'),
-      child: const Text(
-        'Back to Login',
-        style: TextStyle(
-          color: Color(0xFF0A2463),
-          fontWeight: FontWeight.w500,
-        ),
+  Widget _buildPasswordRequirements() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.green[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Password Requirements:",
+            style: TextStyle(fontWeight: FontWeight.w600, color: Colors.green[800]),
+          ),
+          const SizedBox(height: 6),
+          _buildRequirementItem("At least 8 characters"),
+          _buildRequirementItem("Mix of letters and numbers"),
+          _buildRequirementItem("Include special characters"),
+        ],
       ),
     );
   }
 
-  void _showSnackBar(BuildContext context, String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
+  Widget _buildRequirementItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.check_circle_outline, color: Colors.green[600], size: 16),
+          const SizedBox(width: 6),
+          Expanded(child: Text(text, style: TextStyle(color: Colors.grey[700]))),
+        ],
       ),
     );
   }
