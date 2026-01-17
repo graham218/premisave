@@ -219,14 +219,67 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
           value: 'profile',
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: const Color(0xFF00A699),
-                child: Text(
-                  currentUser?.firstName?.substring(0, 1) ?? 'U',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              // Profile Picture with fallback to initials
+              if (currentUser?.profilePictureUrl?.isNotEmpty ?? false)
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF00A699).withOpacity(0.2),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: ClipOval(
+                    child: Image.network(
+                      currentUser!.profilePictureUrl!,
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                                : null,
+                            strokeWidth: 2,
+                            color: const Color(0xFF00A699),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return CircleAvatar(
+                          radius: 16,
+                          backgroundColor: const Color(0xFF00A699),
+                          child: Text(
+                            currentUser.firstName?.substring(0, 1).toUpperCase() ?? 'U',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                )
+              else
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: const Color(0xFF00A699),
+                  child: Text(
+                    currentUser?.firstName?.substring(0, 1).toUpperCase() ?? 'U',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
-              ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,14 +335,67 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
           children: [
             const Icon(Icons.menu, color: Colors.grey),
             const SizedBox(width: 8),
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: const Color(0xFF00A699),
-              child: Text(
-                currentUser?.firstName?.substring(0, 1) ?? 'U',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            // Profile picture or initials in the menu button
+            if (currentUser?.profilePictureUrl?.isNotEmpty ?? false)
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF00A699).withOpacity(0.2),
+                    width: 1.5,
+                  ),
+                ),
+                child: ClipOval(
+                  child: Image.network(
+                    currentUser!.profilePictureUrl!,
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                              : null,
+                          strokeWidth: 2,
+                          color: const Color(0xFF00A699),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return CircleAvatar(
+                        radius: 16,
+                        backgroundColor: const Color(0xFF00A699),
+                        child: Text(
+                          currentUser.firstName?.substring(0, 1).toUpperCase() ?? 'U',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              )
+            else
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: const Color(0xFF00A699),
+                child: Text(
+                  currentUser?.firstName?.substring(0, 1).toUpperCase() ?? 'U',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),
