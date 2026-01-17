@@ -24,7 +24,6 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   @override
   void initState() {
     super.initState();
-    // Use WidgetsBinding to run after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.verificationToken != null && !_isVerifying && !_isVerified) {
         _verifyToken();
@@ -52,10 +51,8 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
           _isVerifying = false;
         });
 
-        // Show success message
         ToastUtils.showSuccessToast('Account verified successfully!');
 
-        // Wait 2 seconds then redirect
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) {
           print('SCREEN: Redirecting to login...');
@@ -68,7 +65,6 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       print('SCREEN: Verification error: $e');
       String errorMessage = e.toString().replaceAll('Exception: ', '');
 
-      // Handle specific error messages
       if (errorMessage.contains('Invalid or expired')) {
         errorMessage = 'Invalid or expired verification link';
       } else if (errorMessage.contains('already verified')) {
@@ -84,7 +80,6 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
         _isVerifying = false;
       });
 
-      // Show error toast
       ToastUtils.showErrorToast(errorMessage);
     }
   }
@@ -110,7 +105,6 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       final success = await ref.read(authProvider.notifier).resendActivationEmail(email);
 
       if (success) {
-        // Clear the text field after successful resend
         _emailController.clear();
       }
     } catch (e) {
@@ -167,72 +161,198 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 400;
+    final isWideScreen = MediaQuery.of(context).size.width > 900;
 
     return Scaffold(
-      body: SafeArea(
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blue.shade50, Colors.white],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.green[50]!, Colors.blue[50]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 40),
-                  Container(
-                    width: double.infinity,
-                    constraints: BoxConstraints(
-                      maxWidth: screenWidth > 600 ? 500 : screenWidth * 0.9,
-                    ),
-                    margin: EdgeInsets.symmetric(
-                      horizontal: screenWidth > 600 ? 20 : 16,
-                    ),
-                    child: Card(
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.all(
-                          screenWidth > 600 ? 32 : 20,
-                        ),
-                        child: _buildContent(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Bottom section
-                  Container(
-                    width: double.infinity,
-                    constraints: BoxConstraints(
-                      maxWidth: screenWidth > 600 ? 500 : screenWidth * 0.9,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    margin: EdgeInsets.symmetric(
-                      horizontal: screenWidth > 600 ? 20 : 16,
-                    ),
-                    child: _buildBottomSection(screenWidth),
-                  ),
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
+        ),
+        child: Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: isWideScreen ? 1000 : 400),
+            margin: const EdgeInsets.all(16),
+            child: isWideScreen ? _buildWideLayout() : _buildMobileLayout(),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildWideLayout() {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        height: 600,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.green[100]!, Colors.blue[100]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.green[400]!, Colors.blue[400]!],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(30),
+                      child: Column(
+                        children: [
+                          Icon(Icons.real_estate_agent, size: 60, color: Colors.white),
+                          const SizedBox(height: 20),
+                          Text(
+                            "Email Verification",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            "Verify your email to access your real estate investment dashboard.",
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildFeatureRow("Secure account access"),
+                          const SizedBox(height: 10),
+                          _buildFeatureRow("Real-time notifications"),
+                          const SizedBox(height: 10),
+                          _buildFeatureRow("Investment tracking"),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    _buildContactButton(),
+                  ],
+                ),
+              ),
+            ),
+            Container(
+              width: 400,
+              padding: const EdgeInsets.all(40),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(-5, 0),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: _buildContent(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return SingleChildScrollView(
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.green[50]!, Colors.blue[50]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Icon(Icons.real_estate_agent, size: 50, color: Colors.green[700]),
+                    const SizedBox(height: 10),
+                    Text(
+                      "Email Verification",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.green[800],
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      "Verify your account",
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildContent(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureRow(String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.check_circle, color: Colors.white.withOpacity(0.9), size: 18),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -263,32 +383,34 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: Colors.green[50],
             shape: BoxShape.circle,
           ),
           child: Stack(
             alignment: Alignment.center,
             children: [
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0A2463)),
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.green[600]!),
                 strokeWidth: 4,
               ),
-              Icon(Icons.verified_outlined,
-                  color: Colors.blue.shade300, size: 40),
+              Icon(Icons.verified_outlined, color: Colors.green[400], size: 40),
             ],
           ),
         ),
         const SizedBox(height: 32),
-        const Text(
+        Text(
           'Verifying Your Account',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,
-              color: Colors.black87),
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.green[800],
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
-        const Text(
+        Text(
           'Please wait while we confirm your email address...',
-          style: TextStyle(color: Colors.black54, fontSize: 15),
+          style: TextStyle(color: Colors.grey[700], fontSize: 15),
           textAlign: TextAlign.center,
         ),
       ],
@@ -303,30 +425,32 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: Colors.green.shade50,
+            color: Colors.green[50],
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.green.shade200, width: 3),
+            border: Border.all(color: Colors.green[200]!, width: 3),
           ),
-          child: const Icon(Icons.check_circle,
-              color: Colors.green, size: 50),
+          child: Icon(Icons.check_circle, color: Colors.green[600], size: 50),
         ),
         const SizedBox(height: 32),
-        const Text(
+        Text(
           'Email Verified!',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,
-              color: Colors.green),
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.green[600],
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
-        const Text(
+        Text(
           'Your account has been successfully verified.',
-          style: TextStyle(color: Colors.black54, fontSize: 15),
+          style: TextStyle(color: Colors.grey[700], fontSize: 15),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'You can now sign in to your account.',
-          style: TextStyle(color: Colors.black54, fontSize: 15),
+          style: TextStyle(color: Colors.grey[700], fontSize: 15),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
@@ -335,24 +459,24 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
           child: ElevatedButton(
             onPressed: () => context.go('/login'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
+              backgroundColor: Colors.green[600],
               foregroundColor: Colors.white,
-              minimumSize: const Size(0, 50),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 4,
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Go to Login',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                Text('Go to Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 SizedBox(width: 8),
                 Icon(Icons.arrow_forward, size: 20),
               ],
             ),
           ),
         ),
+        const SizedBox(height: 16),
+        _buildBackToLoginButton(),
       ],
     );
   }
@@ -365,52 +489,49 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: Colors.red.shade50,
+            color: Colors.red[50],
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.red.shade200, width: 3),
+            border: Border.all(color: Colors.red[200]!, width: 3),
           ),
-          child: const Icon(Icons.error_outline,
-              color: Colors.red, size: 50),
+          child: Icon(Icons.error_outline, color: Colors.red[600], size: 50),
         ),
         const SizedBox(height: 32),
-        const Text(
+        Text(
           'Verification Failed',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,
-              color: Colors.red),
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.red[600],
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
         Text(
           _error ?? 'An error occurred during verification',
-          style: const TextStyle(color: Colors.black54, fontSize: 15),
+          style: TextStyle(color: Colors.grey[700], fontSize: 15),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
-        // Retry button for failed verification
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
             onPressed: _retryVerification,
             style: OutlinedButton.styleFrom(
-              minimumSize: const Size(0, 50),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              side: const BorderSide(color: Color(0xFF0A2463)),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              side: BorderSide(color: Colors.green[600]!),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.refresh, color: Color(0xFF0A2463), size: 20),
-                SizedBox(width: 10),
-                Text('Try Again',
-                    style: TextStyle(color: Color(0xFF0A2463), fontWeight: FontWeight.w600)),
+                Icon(Icons.refresh, color: Colors.green[600], size: 20),
+                const SizedBox(width: 10),
+                Text('Try Again', style: TextStyle(color: Colors.green[600], fontWeight: FontWeight.w600)),
               ],
             ),
           ),
         ),
         const SizedBox(height: 16),
-        // Show resend form in error state
         _buildResendForm(),
       ],
     );
@@ -422,16 +543,19 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 20),
-        const Text(
+        Text(
           'Need a new verification link?',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
-              color: Colors.black87),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.green[800],
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Enter your email to receive a new verification link',
-          style: TextStyle(color: Colors.black54, fontSize: 14),
+          style: TextStyle(color: Colors.grey[700], fontSize: 14),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 20),
@@ -441,12 +565,10 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
             labelText: 'Email Address',
             hintText: 'you@example.com',
             prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             filled: true,
-            fillColor: Colors.grey.shade50,
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 16),
+            fillColor: Colors.grey[50],
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
           keyboardType: TextInputType.emailAddress,
         ),
@@ -456,102 +578,67 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
           child: ElevatedButton(
             onPressed: _isResending ? null : _resendActivation,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0A2463),
+              backgroundColor: Colors.green[600],
               foregroundColor: Colors.white,
-              minimumSize: const Size(0, 50),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 4,
             ),
             child: _isResending
-                ? const SizedBox(
+                ? SizedBox(
               width: 24,
               height: 24,
-              child: CircularProgressIndicator(
-                  color: Colors.white, strokeWidth: 3),
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
             )
-                : const Row(
+                : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.send_outlined, size: 20),
-                SizedBox(width: 10),
-                Text('Send New Verification Link',
-                    style: TextStyle(fontSize: 16,
-                        fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomSection(double screenWidth) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Contact Support Button
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: _showContactDialog,
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(0, 50),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              side: const BorderSide(color: Color(0xFF0A2463)),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.support_agent_outlined,
-                    color: Color(0xFF0A2463), size: 20),
-                SizedBox(width: 10),
-                Text(
-                  'Contact Support',
-                  style: TextStyle(
-                    color: Color(0xFF0A2463),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
+                const Icon(Icons.send_outlined, size: 20),
+                const SizedBox(width: 10),
+                Text('Send New Verification Link', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
         ),
         const SizedBox(height: 16),
-
-        // Back to Login Button
-        SizedBox(
-          width: double.infinity,
-          child: TextButton(
-            onPressed: () => context.go('/login'),
-            style: TextButton.styleFrom(
-              minimumSize: const Size(0, 50),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.arrow_back_ios_new,
-                    color: Colors.blue, size: 16),
-                SizedBox(width: 10),
-                Text(
-                  'Back to Login',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        _buildBackToLoginButton(),
       ],
+    );
+  }
+
+  Widget _buildContactButton() {
+    return OutlinedButton.icon(
+      onPressed: _showContactDialog,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        side: BorderSide(color: Colors.white.withOpacity(0.5)),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      icon: const Icon(Icons.support_agent_outlined),
+      label: const Text('Contact Support'),
+    );
+  }
+
+  Widget _buildBackToLoginButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: TextButton(
+        onPressed: () => context.go('/login'),
+        style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.arrow_back_ios_new, color: Colors.green[600], size: 16),
+            const SizedBox(width: 10),
+            Text(
+              'Back to Login',
+              style: TextStyle(color: Colors.green[600], fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
