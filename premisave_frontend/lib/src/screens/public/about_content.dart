@@ -5,20 +5,24 @@ class AboutContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SingleChildScrollView(
-      padding: EdgeInsets.all(24),
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 1200;
+    final isMediumScreen = screenWidth > 600;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(isLargeScreen ? 32 : 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _HeaderSection(),
-          SizedBox(height: 32),
-          _MissionVision(),
-          SizedBox(height: 32),
-          _TeamSection(),
-          SizedBox(height: 32),
-          _CoreValues(),
-          SizedBox(height: 32),
-          _ContactSection(),
+          const _HeaderSection(),
+          const SizedBox(height: 32),
+          isLargeScreen ? const _MissionVisionRow() : const _MissionVisionColumn(),
+          const SizedBox(height: 32),
+          _TeamSection(isLargeScreen: isLargeScreen, isMediumScreen: isMediumScreen),
+          const SizedBox(height: 32),
+          _CoreValuesSection(isLargeScreen: isLargeScreen, isMediumScreen: isMediumScreen),
+          const SizedBox(height: 32),
+          const _ContactSection(),
         ],
       ),
     );
@@ -68,7 +72,7 @@ class _HeaderSection extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Premisave connects property owners, buyers, and service providers through innovative technology, making real estate transactions secure, transparent, and efficient.',
+            'Premisave connects property owners, buyers, and service providers through innovative technology.',
             style: TextStyle(fontSize: 16, height: 1.6),
             textAlign: TextAlign.center,
           ),
@@ -78,30 +82,50 @@ class _HeaderSection extends StatelessWidget {
   }
 }
 
-class _MissionVision extends StatelessWidget {
-  const _MissionVision();
+class _MissionVisionRow extends StatelessWidget {
+  const _MissionVisionRow();
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: _MissionVisionCard(
-            icon: Icons.flag,
-            title: 'Our Mission',
-            content: 'To revolutionize real estate in Kenya with secure, transparent, and efficient digital solutions that empower everyone in the property market.',
-            color: Colors.green,
-          ),
+      children: const [
+        Expanded(child: _MissionVisionCard(
+          icon: Icons.flag,
+          title: 'Our Mission',
+          content: 'To revolutionize real estate in Kenya with secure, transparent, and efficient digital solutions.',
+          color: Colors.green,
+        )),
+        SizedBox(width: 20),
+        Expanded(child: _MissionVisionCard(
+          icon: Icons.visibility,
+          title: 'Our Vision',
+          content: 'To become East Africa\'s leading real estate platform, transforming property management.',
+          color: Colors.blue,
+        )),
+      ],
+    );
+  }
+}
+
+class _MissionVisionColumn extends StatelessWidget {
+  const _MissionVisionColumn();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: const [
+        _MissionVisionCard(
+          icon: Icons.flag,
+          title: 'Our Mission',
+          content: 'To revolutionize real estate in Kenya with secure, transparent, and efficient digital solutions.',
+          color: Colors.green,
         ),
-        const SizedBox(width: 20),
-        Expanded(
-          child: _MissionVisionCard(
-            icon: Icons.visibility,
-            title: 'Our Vision',
-            content: 'To become East Africa\'s leading real estate platform, transforming how people buy, sell, and manage properties sustainably.',
-            color: Colors.blue,
-          ),
+        SizedBox(height: 20),
+        _MissionVisionCard(
+          icon: Icons.visibility,
+          title: 'Our Vision',
+          content: 'To become East Africa\'s leading real estate platform, transforming property management.',
+          color: Colors.blue,
         ),
       ],
     );
@@ -169,28 +193,34 @@ class _MissionVisionCard extends StatelessWidget {
 }
 
 class _TeamSection extends StatelessWidget {
-  const _TeamSection();
+  final bool isLargeScreen;
+  final bool isMediumScreen;
+
+  const _TeamSection({
+    required this.isLargeScreen,
+    required this.isMediumScreen,
+  });
 
   final List<Map<String, dynamic>> teamMembers = const [
     {
       'name': 'James Maina',
       'role': 'CEO',
-      'image': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop',
+      'image': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w-200',
     },
     {
       'name': 'Grace Nyong\'o',
       'role': 'CFO',
-      'image': 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=300&auto=format&fit=crop',
+      'image': 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w-200',
     },
     {
       'name': 'Peter Kariuki',
       'role': 'CTO',
-      'image': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop',
+      'image': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w-200',
     },
     {
       'name': 'Lucy Wambui',
       'role': 'Operations',
-      'image': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop',
+      'image': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w-200',
     },
   ];
 
@@ -212,14 +242,17 @@ class _TeamSection extends StatelessWidget {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: isLargeScreen ? 4 : (isMediumScreen ? 3 : 2),
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
-            childAspectRatio: 0.8,
+            childAspectRatio: isLargeScreen ? 0.85 : 0.9,
           ),
           itemCount: teamMembers.length,
-          itemBuilder: (context, index) => _TeamMemberCard(member: teamMembers[index]),
+          itemBuilder: (context, index) => _TeamMemberCard(
+            member: teamMembers[index],
+            isLargeScreen: isLargeScreen,
+          ),
         ),
       ],
     );
@@ -228,8 +261,12 @@ class _TeamSection extends StatelessWidget {
 
 class _TeamMemberCard extends StatelessWidget {
   final Map<String, dynamic> member;
+  final bool isLargeScreen;
 
-  const _TeamMemberCard({required this.member});
+  const _TeamMemberCard({
+    required this.member,
+    required this.isLargeScreen,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +274,7 @@ class _TeamMemberCard extends StatelessWidget {
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(isLargeScreen ? 16 : 20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
@@ -247,21 +284,30 @@ class _TeamMemberCard extends StatelessWidget {
           ),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircleAvatar(
-              radius: 50,
+              radius: isLargeScreen ? 35 : 50,
               backgroundImage: NetworkImage(member['image']),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: isLargeScreen ? 12 : 16),
             Text(
               member['name'],
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: isLargeScreen ? 16 : 18,
+                fontWeight: FontWeight.w700,
+              ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               member['role'],
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: isLargeScreen ? 13 : 14,
+                color: Colors.grey[600],
+              ),
             ),
           ],
         ),
@@ -270,8 +316,14 @@ class _TeamMemberCard extends StatelessWidget {
   }
 }
 
-class _CoreValues extends StatelessWidget {
-  const _CoreValues();
+class _CoreValuesSection extends StatelessWidget {
+  final bool isLargeScreen;
+  final bool isMediumScreen;
+
+  const _CoreValuesSection({
+    required this.isLargeScreen,
+    required this.isMediumScreen,
+  });
 
   final List<Map<String, dynamic>> values = const [
     {
@@ -318,14 +370,17 @@ class _CoreValues extends StatelessWidget {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: isLargeScreen ? 4 : (isMediumScreen ? 2 : 1),
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
-            childAspectRatio: 1.2,
+            childAspectRatio: isLargeScreen ? 0.9 : 1.2,
           ),
           itemCount: values.length,
-          itemBuilder: (context, index) => _ValueCard(value: values[index]),
+          itemBuilder: (context, index) => _ValueCard(
+            value: values[index],
+            isLargeScreen: isLargeScreen,
+          ),
         ),
       ],
     );
@@ -334,8 +389,12 @@ class _CoreValues extends StatelessWidget {
 
 class _ValueCard extends StatelessWidget {
   final Map<String, dynamic> value;
+  final bool isLargeScreen;
 
-  const _ValueCard({required this.value});
+  const _ValueCard({
+    required this.value,
+    required this.isLargeScreen,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -343,7 +402,7 @@ class _ValueCard extends StatelessWidget {
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(isLargeScreen ? 16 : 20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
@@ -356,26 +415,33 @@ class _ValueCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(isLargeScreen ? 10 : 12),
               decoration: BoxDecoration(
                 color: value['color'].withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: Icon(value['icon'], size: 28, color: value['color']),
+              child: Icon(
+                value['icon'],
+                size: isLargeScreen ? 24 : 28,
+                color: value['color'],
+              ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: isLargeScreen ? 12 : 16),
             Text(
               value['title'],
               style: TextStyle(
-                fontSize: 18,
+                fontSize: isLargeScreen ? 16 : 18,
                 fontWeight: FontWeight.w700,
                 color: value['color'],
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: isLargeScreen ? 6 : 8),
             Text(
               value['description'],
-              style: const TextStyle(fontSize: 14, height: 1.4),
+              style: TextStyle(
+                fontSize: isLargeScreen ? 13 : 14,
+                height: 1.4,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
