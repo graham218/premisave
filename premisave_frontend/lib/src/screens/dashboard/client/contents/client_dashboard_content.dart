@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../models/auth/user_model.dart';
 import '../../../../providers/auth/auth_provider.dart';
+import 'widgets/client_explore/property_details_dialog.dart';
 
 class ClientDashboardContent extends ConsumerStatefulWidget {
   const ClientDashboardContent({super.key});
@@ -14,31 +15,18 @@ class _ClientDashboardContentState extends ConsumerState<ClientDashboardContent>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  late Animation<double> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
-
     _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
     );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
-      ),
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
     );
-
-    _slideAnimation = Tween<double>(begin: 50.0, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
-
     _animationController.forward();
   }
 
@@ -51,33 +39,27 @@ class _ClientDashboardContentState extends ConsumerState<ClientDashboardContent>
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final isSmallScreen = MediaQuery.of(context).size.width < 768;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isSmallScreen ? 12 : 24),
       child: AnimatedBuilder(
         animation: _animationController,
-        builder: (context, child) {
-          return Opacity(
-            opacity: _fadeAnimation.value,
-            child: Transform.translate(
-              offset: Offset(0, _slideAnimation.value),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _WelcomeCard(user: authState.currentUser),
-                  const SizedBox(height: 24),
-                  _DashboardGrid(),
-                  const SizedBox(height: 24),
-                  _QuickActionsGrid(),
-                  const SizedBox(height: 24),
-                  _RecentTransactionsSection(),
-                  const SizedBox(height: 24),
-                  _MyPropertiesSection(),
-                ],
-              ),
-            ),
-          );
-        },
+        builder: (context, child) => FadeTransition(
+          opacity: _fadeAnimation,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _WelcomeCard(user: authState.currentUser),
+              const SizedBox(height: 24),
+              _DashboardGrid(),
+              const SizedBox(height: 24),
+              _QuickActionsGrid(),
+              const SizedBox(height: 24),
+              _TrendingPropertiesSection(),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -89,157 +71,114 @@ class _WelcomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasProfilePic = user?.profilePictureUrl?.isNotEmpty == true;
+
     return Container(
-      width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F7FA),
+        gradient: LinearGradient(
+          colors: [Colors.green[50]!, Colors.blue[50]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1A2B4C).withOpacity(0.1),
+            color: Colors.grey.withOpacity(0.2),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
         ],
-        border: Border.all(
-          color: const Color(0xFFE8EBF0),
-          width: 1.5,
-        ),
       ),
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(24),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome back,',
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user?.firstName ?? 'Guest',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Text(
-                      'Welcome back,',
-                      style: TextStyle(
-                        color: const Color(0xFF2C3E50).withOpacity(0.8),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user?.firstName ?? 'Client',
-                      style: const TextStyle(
-                        color: Color(0xFF1A2B4C),
-                        fontSize: 32,
-                        fontWeight: FontWeight.w700,
-                        height: 1.1,
-                      ),
-                    ),
+                    _buildStatusChip('Active', Icons.verified, Colors.green),
+                    _buildStatusChip('Premium', Icons.diamond, Colors.blue),
+                    _buildStatusChip('Member', Icons.star, Colors.amber),
                   ],
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00A699),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00A699).withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.person_rounded,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: 60,
-            height: 3,
-            decoration: BoxDecoration(
-              color: const Color(0xFF00A699),
-              borderRadius: BorderRadius.circular(2),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _buildStatusChip(
-                'Account Active',
-                Icons.check_circle_rounded,
-                const Color(0xFF10B981),
-              ),
-              _buildStatusChip(
-                'Properties Owned',
-                Icons.home_work_rounded,
-                const Color(0xFF00A699),
-              ),
-              _buildStatusChip(
-                'Transactions',
-                Icons.receipt_long_rounded,
-                const Color(0xFF6366F1),
-              ),
-              _buildStatusChip(
-                'Last Payment',
-                Icons.payment_rounded,
-                const Color(0xFF8B5CF6),
-              ),
-            ],
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.green, width: 2),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(40),
+              child: hasProfilePic
+                  ? Image.network(
+                user!.profilePictureUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _buildProfileFallback(),
+              )
+                  : _buildProfileFallback(),
+            ),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildProfileFallback() {
+    return Container(
+      color: Colors.green[100],
+      child: const Icon(
+        Icons.person,
+        size: 40,
+        color: Colors.green,
+      ),
+    );
+  }
+
   Widget _buildStatusChip(String text, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withOpacity(0.15),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1A2B4C).withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              size: 16,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 8),
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
           Text(
             text,
             style: TextStyle(
-              color: const Color(0xFF2C3E50),
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
+              color: color,
             ),
           ),
         ],
@@ -249,40 +188,35 @@ class _WelcomeCard extends StatelessWidget {
 }
 
 class _DashboardGrid extends StatelessWidget {
+  final List<_StatInfo> stats = [
+    _StatInfo('Properties', '5', Icons.home, Colors.green),
+    _StatInfo('Payments', 'KES 250K', Icons.payments, Colors.blue),
+    _StatInfo('Pending', 'KES 45K', Icons.pending, Colors.orange),
+    _StatInfo('Support', '2', Icons.support, Colors.purple),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    final crossAxisCount = isSmallScreen ? 2 : 4;
+    final spacing = isSmallScreen ? 12.0 : 16.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _SectionTitle('My Overview'),
         const SizedBox(height: 16),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isSmallScreen = constraints.maxWidth < 600;
-            final isMediumScreen = constraints.maxWidth < 900;
-            final crossAxisCount = isSmallScreen ? 2 : (isMediumScreen ? 3 : 4);
-            final childAspectRatio = isSmallScreen ? 1.3 : (isMediumScreen ? 1.5 : 1.2);
-            final mainAxisSpacing = isSmallScreen ? 12.0 : 16.0;
-
-            final stats = [
-              _StatInfo('My Properties', '5', Icons.home, const Color(0xFF00A699)),
-              _StatInfo('Total Payments', 'KES 250,000', Icons.payments, const Color(0xFF10B981)),
-              _StatInfo('Pending Bills', 'KES 45,820', Icons.receipt, const Color(0xFFF59E0B)),
-              _StatInfo('Support Tickets', '2', Icons.support_agent, const Color(0xFF6366F1)),
-              if (crossAxisCount > 3) _StatInfo('Lease Duration', '12 Months', Icons.calendar_today, const Color(0xFF8B5CF6)),
-              if (crossAxisCount > 3) _StatInfo('Saved Amount', 'KES 150,000', Icons.savings, const Color(0xFF00A699)),
-            ];
-
-            return GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: mainAxisSpacing,
-              childAspectRatio: childAspectRatio,
-              children: stats.map((stat) => _StatCard(info: stat)).toList(),
-            );
-          },
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
+            childAspectRatio: 1.2,
+          ),
+          itemCount: stats.length,
+          itemBuilder: (context, index) => _StatCard(info: stats[index]),
         ),
       ],
     );
@@ -294,423 +228,55 @@ class _StatInfo {
   final String value;
   final IconData icon;
   final Color color;
-
   _StatInfo(this.title, this.value, this.icon, this.color);
 }
 
 class _StatCard extends StatelessWidget {
   final _StatInfo info;
-
   const _StatCard({required this.info});
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
-    final padding = isSmallScreen ? 12.0 : 16.0;
-    final iconSize = isSmallScreen ? 16.0 : 18.0;
-    final titleSize = isSmallScreen ? 11.0 : 13.0;
-    final valueSize = isSmallScreen ? 12.0 : 14.0;
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: TweenAnimationBuilder(
-        duration: const Duration(milliseconds: 500),
-        tween: Tween<double>(begin: 0, end: 1),
-        builder: (context, double val, child) {
-          return Transform.scale(
-            scale: 1 + (val * 0.05),
-            child: child,
-          );
-        },
-        child: Card(
-          elevation: 8,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          shadowColor: info.color.withOpacity(0.3),
-          child: Container(
-            constraints: BoxConstraints(
-              minHeight: isSmallScreen ? 80 : 100,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white,
-                  info.color.withOpacity(0.05),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(padding),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              info.color.withOpacity(0.2),
-                              info.color.withOpacity(0.1),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: info.color.withOpacity(0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Icon(info.icon, color: info.color, size: iconSize),
-                      ),
-                      SizedBox(width: isSmallScreen ? 6 : 10),
-                      Expanded(
-                        child: Text(
-                          info.title,
-                          style: TextStyle(
-                            fontSize: titleSize,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: isSmallScreen ? 6 : 10),
-                  Flexible(
-                    child: Text(
-                      info.value,
-                      style: TextStyle(
-                        fontSize: valueSize,
-                        fontWeight: FontWeight.bold,
-                        color: info.color,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 2,
-                            color: info.color.withOpacity(0.2),
-                            offset: const Offset(1, 1),
-                          ),
-                        ],
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [info.color.withOpacity(0.1), Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _QuickActionsGrid extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _SectionTitle('Quick Actions'),
-        const SizedBox(height: 16),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isSmallScreen = constraints.maxWidth < 600;
-            final isMediumScreen = constraints.maxWidth < 900;
-            final crossAxisCount = isSmallScreen ? 2 : (isMediumScreen ? 3 : 4);
-            final childAspectRatio = isSmallScreen ? 1.1 : (isMediumScreen ? 1.3 : 1.1);
-            final padding = isSmallScreen ? 16.0 : 20.0;
-
-            final actions = [
-              _ActionInfo('Make Payment', Icons.payment, const Color(0xFF00A699)),
-              _ActionInfo('View Properties', Icons.home_work, const Color(0xFF10B981)),
-              _ActionInfo('Support Ticket', Icons.support_agent, const Color(0xFF6366F1)),
-              _ActionInfo('Account Settings', Icons.settings, const Color(0xFF8B5CF6)),
-            ];
-
-            return Container(
-              constraints: BoxConstraints(
-                maxHeight: isSmallScreen ? 200 : (isMediumScreen ? 180 : 160),
-              ),
-              child: GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: childAspectRatio,
-                children: actions.map((action) => _ActionCard(action: action)).toList(),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionInfo {
-  final String title;
-  final IconData icon;
-  final Color color;
-
-  _ActionInfo(this.title, this.icon, this.color);
-}
-
-class _ActionCard extends StatelessWidget {
-  final _ActionInfo action;
-
-  const _ActionCard({required this.action});
-
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
-    final padding = isSmallScreen ? 12.0 : 16.0;
-    final iconSize = isSmallScreen ? 20.0 : 24.0;
-    final textSize = isSmallScreen ? 11.0 : 13.0;
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: TweenAnimationBuilder(
-        duration: const Duration(milliseconds: 600),
-        tween: Tween<double>(begin: 0, end: 1),
-        builder: (context, double val, child) {
-          return Transform.translate(
-            offset: Offset(0, (1 - val) * 20),
-            child: Opacity(
-              opacity: val,
-              child: child,
-            ),
-          );
-        },
-        child: Card(
-          elevation: 6,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          shadowColor: action.color.withOpacity(0.4),
-          child: InkWell(
-            onTap: () {},
-            borderRadius: BorderRadius.circular(16),
-            hoverColor: action.color.withOpacity(0.1),
-            splashColor: action.color.withOpacity(0.2),
-            child: Container(
-              constraints: BoxConstraints(
-                minHeight: isSmallScreen ? 80 : 100,
-              ),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  colors: [
-                    action.color.withOpacity(0.08),
-                    action.color.withOpacity(0.02),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              padding: EdgeInsets.all(padding),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          action.color.withOpacity(0.2),
-                          action.color.withOpacity(0.1),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: action.color.withOpacity(0.3),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(action.icon, color: action.color, size: iconSize),
-                  ),
-                  SizedBox(height: isSmallScreen ? 6 : 12),
-                  Flexible(
-                    child: Text(
-                      action.title,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: textSize,
-                        fontWeight: FontWeight.w600,
-                        color: action.color,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 2,
-                            color: action.color.withOpacity(0.2),
-                            offset: const Offset(1, 1),
-                          ),
-                        ],
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RecentTransactionsSection extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final transactions = [
-      _TransactionInfo('Property Payment', 'KES 25,000', '2h ago', Icons.payment, const Color(0xFF10B981)),
-      _TransactionInfo('Maintenance Fee', 'KES 5,000', '1 day ago', Icons.home_repair_service, const Color(0xFF00A699)),
-      _TransactionInfo('Security Deposit', 'KES 15,000', '3 days ago', Icons.security, const Color(0xFF6366F1)),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _SectionTitle('Recent Transactions'),
-        const SizedBox(height: 16),
-        Card(
-          elevation: 6,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          shadowColor: Colors.blue.withOpacity(0.2),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white,
-                  Colors.blue.withOpacity(0.02),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: transactions.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final transaction = entry.value;
-                  return TweenAnimationBuilder(
-                    duration: Duration(milliseconds: 600 + (index * 200)),
-                    tween: Tween<double>(begin: 0, end: 1),
-                    builder: (context, double val, child) {
-                      return Opacity(
-                        opacity: val,
-                        child: Transform.translate(
-                          offset: Offset((1 - val) * 20, 0),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: _TransactionItem(info: transaction),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TransactionInfo {
-  final String title;
-  final String amount;
-  final String time;
-  final IconData icon;
-  final Color color;
-
-  _TransactionInfo(this.title, this.amount, this.time, this.icon, this.color);
-}
-
-class _TransactionItem extends StatelessWidget {
-  final _TransactionInfo info;
-
-  const _TransactionItem({required this.info});
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                info.color.withOpacity(0.2),
-                info.color.withOpacity(0.1),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: info.color.withOpacity(0.2),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Icon(info.icon, color: info.color, size: 20),
-        ),
-        title: Text(
-          info.title,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        trailing: Column(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: info.color.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(info.icon, color: info.color, size: 20),
+            ),
+            const SizedBox(height: 12),
             Text(
-              info.amount,
+              info.value,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: info.color,
               ),
             ),
+            const SizedBox(height: 4),
             Text(
-              info.time,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Colors.grey,
+              info.title,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -721,59 +287,160 @@ class _TransactionItem extends StatelessWidget {
   }
 }
 
-class _MyPropertiesSection extends StatelessWidget {
+class _QuickActionsGrid extends StatelessWidget {
+  final List<_ActionInfo> actions = [
+    _ActionInfo('Pay Bills', Icons.payment, Colors.green),
+    _ActionInfo('Properties', Icons.home_work, Colors.blue),
+    _ActionInfo('Support', Icons.support, Colors.purple),
+    _ActionInfo('Settings', Icons.settings, Colors.orange),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final properties = [
-      _PropertyInfo('Sky Gardens Apartments', 'Nairobi CBD', 'KES 85,000/month', Icons.apartment, const Color(0xFF00A699)),
-      _PropertyInfo('Mountain View Villa', 'Karen', 'KES 250,000/month', Icons.villa, const Color(0xFF8B5CF6)),
-      _PropertyInfo('City Center Office', 'Westlands', 'KES 120,000/month', Icons.business, const Color(0xFFF59E0B)),
-    ];
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    final crossAxisCount = isSmallScreen ? 2 : 4;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionTitle('My Properties'),
+        const _SectionTitle('Quick Actions'),
         const SizedBox(height: 16),
-        Card(
-          elevation: 6,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 1.5,
           ),
-          shadowColor: Colors.green.withOpacity(0.2),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white,
-                  Colors.green.withOpacity(0.02),
+          itemCount: actions.length,
+          itemBuilder: (context, index) => _ActionCard(action: actions[index]),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionInfo {
+  final String title;
+  final IconData icon;
+  final Color color;
+  _ActionInfo(this.title, this.icon, this.color);
+}
+
+class _ActionCard extends StatelessWidget {
+  final _ActionInfo action;
+  const _ActionCard({required this.action});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: () {},
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: action.color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(action.icon, color: action.color, size: 24),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                action.title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: action.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrendingPropertiesSection extends StatelessWidget {
+  final List<Map<String, dynamic>> trendingProperties = [
+    {
+      'image': 'https://images.unsplash.com/photo-1613490493576-7fde63acd811',
+      'title': 'Modern Apartment',
+      'location': 'Nairobi CBD',
+      'dailyPrice': 'KSh 8,500',
+      'monthlyPrice': 'KSh 150,000',
+      'rating': 4.92,
+      'type': 'Apartment',
+      'badge': 'Trending',
+    },
+    {
+      'image': 'https://images.unsplash.com/photo-1518780664697-55e3ad937233',
+      'title': 'Luxury Villa',
+      'location': 'Mombasa',
+      'dailyPrice': 'KSh 25,000',
+      'monthlyPrice': 'KSh 450,000',
+      'rating': 4.88,
+      'type': 'Villa',
+      'badge': 'Popular',
+    },
+    {
+      'image': 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00',
+      'title': 'Mountain Cabin',
+      'location': 'Mount Kenya',
+      'dailyPrice': 'KSh 12,000',
+      'monthlyPrice': 'KSh 220,000',
+      'rating': 4.95,
+      'type': 'Cabin',
+      'badge': 'New',
+    },
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    final itemCount = isSmallScreen ? 2 : 3;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const _SectionTitle('Trending Right Now'),
+            TextButton(
+              onPressed: () => _showAllProperties(context),
+              child: const Row(
+                children: [
+                  Text('Show More'),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward, size: 16),
                 ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
               ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: properties.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final property = entry.value;
-                  return TweenAnimationBuilder(
-                    duration: Duration(milliseconds: 600 + (index * 200)),
-                    tween: Tween<double>(begin: 0, end: 1),
-                    builder: (context, double val, child) {
-                      return Opacity(
-                        opacity: val,
-                        child: Transform.translate(
-                          offset: Offset((1 - val) * 20, 0),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: _PropertyItem(info: property),
-                  );
-                }).toList(),
+          ],
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 220,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: itemCount,
+            itemBuilder: (context, index) => Padding(
+              padding: EdgeInsets.only(right: index < itemCount - 1 ? 16 : 0),
+              child: _TrendingPropertyCard(
+                property: trendingProperties[index],
+                onTap: () => _showPropertyDetails(context, trendingProperties[index]),
               ),
             ),
           ),
@@ -781,92 +448,159 @@ class _MyPropertiesSection extends StatelessWidget {
       ],
     );
   }
+
+  void _showAllProperties(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('All Trending Properties'),
+        content: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.9,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: trendingProperties.length,
+            itemBuilder: (context, index) => ListTile(
+              leading: Image.network(
+                trendingProperties[index]['image'],
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+              ),
+              title: Text(trendingProperties[index]['title']),
+              subtitle: Text(trendingProperties[index]['location']),
+              trailing: Text(trendingProperties[index]['dailyPrice']),
+              onTap: () {
+                Navigator.pop(context);
+                _showPropertyDetails(context, trendingProperties[index]);
+              },
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPropertyDetails(BuildContext context, Map<String, dynamic> property) {
+    showDialog(
+      context: context,
+      builder: (context) => PropertyDetailsDialog(property: property, rentalType: 'daily'),
+    );
+  }
 }
 
-class _PropertyInfo {
-  final String name;
-  final String location;
-  final String price;
-  final IconData icon;
-  final Color color;
+class _TrendingPropertyCard extends StatelessWidget {
+  final Map<String, dynamic> property;
+  final VoidCallback onTap;
 
-  _PropertyInfo(this.name, this.location, this.price, this.icon, this.color);
-}
-
-class _PropertyItem extends StatelessWidget {
-  final _PropertyInfo info;
-
-  const _PropertyItem({required this.info});
+  const _TrendingPropertyCard({
+    required this.property,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-        leading: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                info.color.withOpacity(0.2),
-                info.color.withOpacity(0.1),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: info.color.withOpacity(0.2),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 180,
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: NetworkImage(property['image']),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      if (property['badge'] != null)
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              property['badge'],
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      property['title'],
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      property['location'],
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          property['dailyPrice'],
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.green[800],
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Icon(Icons.star, size: 14, color: Colors.amber[600]),
+                            const SizedBox(width: 2),
+                            Text(
+                              property['rating'].toString(),
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          child: Icon(info.icon, color: info.color, size: 24),
-        ),
-        title: Text(
-          info.name,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: Text(
-          info.location,
-          style: const TextStyle(fontSize: 13),
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              info.price,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: info.color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: info.color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Active',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: info.color,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -882,7 +616,7 @@ class _SectionTitle extends StatelessWidget {
     return Text(
       title,
       style: const TextStyle(
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: FontWeight.w700,
         color: Colors.black,
       ),
