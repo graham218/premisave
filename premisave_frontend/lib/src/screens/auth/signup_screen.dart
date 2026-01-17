@@ -3,237 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth/auth_provider.dart';
 
-class SignupScreen extends ConsumerWidget {
+class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
-    final authNotifier = ref.read(authProvider.notifier);
-    final isLargeScreen = MediaQuery.of(context).size.width > 700;
-
-    // Listen for successful signup to redirect to login
-    ref.listen<AuthState>(authProvider, (previous, next) {
-      // Redirect to login after successful signup
-      if (next.shouldRedirectToLogin && !next.isLoading) {
-        // Small delay to show the success toast first
-        Future.delayed(const Duration(milliseconds: 500), () {
-          context.go('/login');
-        });
-      }
-
-      // Handle successful login redirect (keep existing logic)
-      if (next.token != null && next.redirectUrl != null && !next.isLoading) {
-        context.go(next.redirectUrl!);
-      }
-    });
-
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFf8f9fa), Color(0xFFe9ecef)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: isLargeScreen
-                ? _buildWideLayout(context, authState, authNotifier)
-                : _buildMobileLayout(context, authState, authNotifier),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWideLayout(BuildContext context, AuthState authState, AuthNotifier authNotifier) {
-    return _SignupFormLayout(
-      authState: authState,
-      authNotifier: authNotifier,
-      child: (controllers, isLoading, formKey, toggleObscurePassword, obscurePassword, submitForm) {
-        return Container(
-          constraints: const BoxConstraints(maxWidth: 1100, maxHeight: 700),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 6))],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0A2463),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      bottomLeft: Radius.circular(16),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.real_estate_agent, color: Colors.white, size: 70),
-                        const SizedBox(height: 20),
-                        const Text(
-                          "Join Premisave Today",
-                          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, height: 1.3),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          "Create your account to start investing in real estate. "
-                              "Track properties, manage portfolios, and build your financial future.",
-                          style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
-                        ),
-                        const SizedBox(height: 24),
-                        _buildFeatureRow("Secure investment tracking"),
-                        const SizedBox(height: 10),
-                        _buildFeatureRow("Real-time property updates"),
-                        const SizedBox(height: 10),
-                        _buildFeatureRow("Portfolio management tools"),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        _SignupFormContent(
-                          controllers: controllers,
-                          isLoading: isLoading,
-                          formKey: formKey,
-                          toggleObscurePassword: toggleObscurePassword,
-                          obscurePassword: obscurePassword,
-                          authState: authState,
-                          authNotifier: authNotifier,
-                          submitForm: submitForm,
-                          isLargeScreen: true,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildLoginLink(context, isLoading),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildMobileLayout(BuildContext context, AuthState authState, AuthNotifier authNotifier) {
-    return _SignupFormLayout(
-      authState: authState,
-      authNotifier: authNotifier,
-      child: (controllers, isLoading, formKey, toggleObscurePassword, obscurePassword, submitForm) {
-        return SingleChildScrollView(
-          child: Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 6))],
-            ),
-            child: Column(
-              children: [
-                const Icon(Icons.real_estate_agent, color: Color(0xFF0A2463), size: 60),
-                const SizedBox(height: 16),
-                const Text(
-                  "Create Your Account",
-                  style: TextStyle(fontSize: 22, color: Color(0xFF0A2463), fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "Join Premisave to start your real estate investment journey",
-                  style: TextStyle(color: Colors.black54, fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                _SignupFormContent(
-                  controllers: controllers,
-                  isLoading: isLoading,
-                  formKey: formKey,
-                  toggleObscurePassword: toggleObscurePassword,
-                  obscurePassword: obscurePassword,
-                  authState: authState,
-                  authNotifier: authNotifier,
-                  submitForm: submitForm,
-                  isLargeScreen: false,
-                ),
-                const SizedBox(height: 20),
-                _buildLoginLink(context, isLoading),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFeatureRow(String text) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(Icons.check_circle, color: Colors.white70, size: 18),
-        const SizedBox(width: 8),
-        Expanded(child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 13))),
-      ],
-    );
-  }
-
-  Widget _buildLoginLink(BuildContext context, bool isLoading) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text("Already have an account?", style: TextStyle(color: Colors.black54, fontSize: 13)),
-        const SizedBox(width: 6),
-        TextButton(
-          onPressed: isLoading ? null : () => context.go('/login'),
-          child: const Text('Login', style: TextStyle(color: Color(0xFF0A2463), fontWeight: FontWeight.bold, fontSize: 13)),
-        ),
-      ],
-    );
-  }
+  ConsumerState<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupFormLayout extends StatefulWidget {
-  final AuthState authState;
-  final AuthNotifier authNotifier;
-  final Widget Function(
-      Map<String, TextEditingController> controllers,
-      bool isLoading,
-      GlobalKey<FormState> formKey,
-      VoidCallback toggleObscurePassword,
-      bool obscurePassword,
-      VoidCallback submitForm,
-      ) child;
-
-  const _SignupFormLayout({
-    required this.authState,
-    required this.authNotifier,
-    required this.child,
-  });
-
-  @override
-  State<_SignupFormLayout> createState() => _SignupFormLayoutState();
-}
-
-class _SignupFormLayoutState extends State<_SignupFormLayout> {
+class _SignupScreenState extends ConsumerState<SignupScreen> {
   late final Map<String, TextEditingController> controllers;
   late final GlobalKey<FormState> _formKey;
   bool _obscurePassword = true;
@@ -263,9 +40,9 @@ class _SignupFormLayoutState extends State<_SignupFormLayout> {
     super.dispose();
   }
 
-  void _toggleObscurePassword() => setState(() => _obscurePassword = !_obscurePassword);
+  void _togglePasswordVisibility() => setState(() => _obscurePassword = !_obscurePassword);
 
-  void _submitForm() {
+  void _submitForm(AuthNotifier authNotifier) {
     if (_formKey.currentState!.validate()) {
       final data = {
         'username': controllers['username']!.text,
@@ -280,303 +57,552 @@ class _SignupFormLayoutState extends State<_SignupFormLayout> {
         'language': controllers['language']!.text,
         'password': controllers['password']!.text,
       };
-      widget.authNotifier.signUp(data);
+      authNotifier.signUp(data);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return widget.child(
-      controllers,
-      widget.authState.isLoading,
-      _formKey,
-      _toggleObscurePassword,
-      _obscurePassword,
-      _submitForm,
+    final authState = ref.watch(authProvider);
+    final authNotifier = ref.read(authProvider.notifier);
+    final isWideScreen = MediaQuery.of(context).size.width > 900;
+
+    ref.listen<AuthState>(authProvider, (_, next) {
+      if (next.shouldRedirectToLogin && !next.isLoading) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          context.go('/login');
+        });
+      }
+
+      if (next.token != null && next.redirectUrl != null && !next.isLoading) {
+        context.go(next.redirectUrl!);
+      }
+    });
+
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.green[50]!, Colors.blue[50]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: isWideScreen ? 1000 : 400),
+            margin: const EdgeInsets.all(16),
+            child: isWideScreen ? _buildWideLayout(authState, authNotifier) : _buildMobileLayout(authState, authNotifier),
+          ),
+        ),
+      ),
     );
   }
-}
 
-class _SignupFormContent extends StatelessWidget {
-  final Map<String, TextEditingController> controllers;
-  final bool isLoading;
-  final GlobalKey<FormState> formKey;
-  final VoidCallback toggleObscurePassword;
-  final bool obscurePassword;
-  final AuthState authState;
-  final AuthNotifier authNotifier;
-  final VoidCallback submitForm;
-  final bool isLargeScreen;
+  Widget _buildWideLayout(AuthState authState, AuthNotifier authNotifier) {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        height: 700, // Slightly taller for signup
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.green[100]!, Colors.blue[100]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.green[400]!, Colors.blue[400]!],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(30),
+                      child: Column(
+                        children: [
+                          Icon(Icons.real_estate_agent, size: 60, color: Colors.white),
+                          const SizedBox(height: 20),
+                          Text(
+                            "Join Premisave Today",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            "Create your account to start investing in real estate.",
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildFeatureRow("Secure investment tracking"),
+                          const SizedBox(height: 10),
+                          _buildFeatureRow("Real-time property updates"),
+                          const SizedBox(height: 10),
+                          _buildFeatureRow("Portfolio management tools"),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    _buildSocialSignupButtons(authState, authNotifier),
+                  ],
+                ),
+              ),
+            ),
+            Container(
+              width: 500, // Wider for signup form
+              padding: const EdgeInsets.all(40),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(-5, 0),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: _buildForm(authState, authNotifier, true),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  const _SignupFormContent({
-    required this.controllers,
-    required this.isLoading,
-    required this.formKey,
-    required this.toggleObscurePassword,
-    required this.obscurePassword,
-    required this.authState,
-    required this.authNotifier,
-    required this.submitForm,
-    required this.isLargeScreen,
-  });
+  Widget _buildMobileLayout(AuthState authState, AuthNotifier authNotifier) {
+    return SingleChildScrollView(
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.green[50]!, Colors.blue[50]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Icon(Icons.real_estate_agent, size: 50, color: Colors.green[700]),
+                    const SizedBox(height: 10),
+                    Text(
+                      "Join Premisave",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.green[800],
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      "Create your account",
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildForm(authState, authNotifier, false),
+              const SizedBox(height: 16),
+              _buildSocialSignupButtons(authState, authNotifier),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildFeatureRow(String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.check_circle, color: Colors.white.withOpacity(0.9), size: 18),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForm(AuthState authState, AuthNotifier authNotifier, bool isWideScreen) {
     return Form(
-      key: formKey,
-      autovalidateMode: AutovalidateMode.onUserInteraction,
-      child: Column(
-        children: [
-          const Text(
-            "Personal Information",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0A2463)),
-          ),
-          const SizedBox(height: 16),
-          _buildTopRow(),
-          const SizedBox(height: 12),
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Text("Full Name", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.grey)),
-          ),
-          const SizedBox(height: 8),
-          _buildNameFields(),
-          const SizedBox(height: 16),
-          const Text(
-            "Contact Information",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0A2463)),
-          ),
-          const SizedBox(height: 12),
-          _buildContactFields(),
-          const SizedBox(height: 12),
-          _buildAddress1Field(),
-          const SizedBox(height: 12),
-          _buildAddress2Field(),
-          const SizedBox(height: 12),
-          _buildCountryField(),
-          const SizedBox(height: 16),
-          const Text(
-            "Account Security",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0A2463)),
-          ),
-          const SizedBox(height: 12),
-          _buildPasswordField(),
-          const SizedBox(height: 12),
-          _buildPasswordRequirements(),
-          const SizedBox(height: 20),
-          const Text("Or sign up with", style: TextStyle(color: Colors.black54, fontSize: 13)),
-          const SizedBox(height: 12),
-          _buildSocialSignupButtons(context),
-          const SizedBox(height: 20),
-          _buildSubmitButton(),
-          if (authState.error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Text(authState.error!, style: const TextStyle(color: Colors.red, fontSize: 13), textAlign: TextAlign.center),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopRow() {
-    final usernameField = _buildTextField(
-      controller: controllers['username']!,
-      label: 'Username',
-      hintText: 'Enter username',
-      icon: Icons.person_outline,
-      validator: (value) => value == null || value.isEmpty ? 'Username is required' : null,
-    );
-
-    final emailField = _buildTextField(
-      controller: controllers['email']!,
-      label: 'Email',
-      hintText: 'Enter email',
-      icon: Icons.email_outlined,
-      keyboardType: TextInputType.emailAddress,
-      validator: (value) {
-        if (value == null || value.isEmpty) return 'Email is required';
-        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return 'Enter a valid email';
-        return null;
-      },
-    );
-
-    return isLargeScreen ? Row(children: [Expanded(child: usernameField), const SizedBox(width: 12), Expanded(child: emailField)])
-        : Column(children: [usernameField, const SizedBox(height: 12), emailField]);
-  }
-
-  Widget _buildNameFields() {
-    final firstNameField = _buildTextField(
-      controller: controllers['firstName']!,
-      label: 'First Name',
-      hintText: 'Enter first name',
-      icon: Icons.person_outline,
-      validator: (value) => value == null || value.isEmpty ? 'First name is required' : null,
-    );
-
-    final middleNameField = _buildTextField(
-      controller: controllers['middleName']!,
-      label: 'Middle Name',
-      hintText: 'Optional',
-      icon: Icons.person_outline,
-      isRequired: false,
-    );
-
-    final lastNameField = _buildTextField(
-      controller: controllers['lastName']!,
-      label: 'Last Name',
-      hintText: 'Enter last name',
-      icon: Icons.person_outline,
-      validator: (value) => value == null || value.isEmpty ? 'Last name is required' : null,
-    );
-
-    return isLargeScreen
-        ? Row(children: [Expanded(child: firstNameField), const SizedBox(width: 12), Expanded(child: middleNameField), const SizedBox(width: 12), Expanded(child: lastNameField)])
-        : Column(children: [firstNameField, const SizedBox(height: 12), middleNameField, const SizedBox(height: 12), lastNameField]);
-  }
-
-  Widget _buildContactFields() {
-    final phoneField = _buildTextField(
-      controller: controllers['phone']!,
-      label: 'Phone Number',
-      hintText: 'Enter phone number',
-      icon: Icons.phone_outlined,
-      keyboardType: TextInputType.phone,
-      validator: (value) => value == null || value.isEmpty ? 'Phone number is required' : null,
-    );
-
-    final languageField = _buildTextField(
-      controller: controllers['language']!,
-      label: 'Language',
-      hintText: 'Default: English',
-      icon: Icons.language_outlined,
-    );
-
-    return isLargeScreen ? Row(children: [Expanded(child: phoneField), const SizedBox(width: 12), Expanded(child: languageField)])
-        : Column(children: [phoneField, const SizedBox(height: 12), languageField]);
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hintText,
-    required IconData icon,
-    bool isRequired = true,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.grey)),
-            if (isRequired) const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
-          ],
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          enabled: !isLoading,
-          validator: validator,
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: const TextStyle(fontSize: 14),
-            prefixIcon: Icon(icon, size: 20),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-            isDense: true,
-            errorMaxLines: 2,
-          ),
-          style: const TextStyle(fontSize: 14),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAddress1Field() => _buildTextField(
-    controller: controllers['address1']!,
-    label: 'Address Line 1',
-    hintText: 'Optional',
-    icon: Icons.home_outlined,
-    isRequired: false,
-  );
-
-  Widget _buildAddress2Field() => _buildTextField(
-    controller: controllers['address2']!,
-    label: 'Address Line 2',
-    hintText: 'Optional',
-    icon: Icons.home_outlined,
-    isRequired: false,
-  );
-
-  Widget _buildCountryField() => _buildTextField(
-    controller: controllers['country']!,
-    label: 'Country',
-    hintText: 'Optional',
-    icon: Icons.location_on_outlined,
-    isRequired: false,
-  );
-
-  Widget _buildPasswordField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(
-          children: [
-            Text('Password', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.grey)),
-            Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
-          ],
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          controller: controllers['password']!,
-          obscureText: obscurePassword,
-          enabled: !isLoading,
-          validator: (value) {
-            if (value == null || value.isEmpty) return 'Password is required';
-            if (value.length < 8) return 'Password must be at least 8 characters';
-            if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])').hasMatch(value)) {
-              return 'Password must include uppercase, lowercase, number and special character';
-            }
-            return null;
-          },
-          decoration: InputDecoration(
-            hintText: 'Enter secure password',
-            hintStyle: const TextStyle(fontSize: 14),
-            prefixIcon: const Icon(Icons.lock_outline, size: 20),
-            suffixIcon: IconButton(
-              icon: Icon(obscurePassword ? Icons.visibility : Icons.visibility_off, size: 20),
-              onPressed: toggleObscurePassword,
-            ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-            isDense: true,
-            errorMaxLines: 2,
-          ),
-          style: const TextStyle(fontSize: 14),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPasswordRequirements() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFf8f9fa),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
+      key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Password Requirements:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0A2463))),
-          const SizedBox(height: 6),
-          _buildRequirementItem("At least 8 characters"),
-          _buildRequirementItem("Mix of uppercase and lowercase"),
-          _buildRequirementItem("Include numbers (0-9)"),
-          _buildRequirementItem("Include special characters"),
+          Text(
+            "Personal Information",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Colors.green[800],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Username
+          TextFormField(
+            controller: controllers['username'],
+            enabled: !authState.isLoading,
+            decoration: InputDecoration(
+              labelText: 'Username',
+              prefixIcon: const Icon(Icons.person_outline),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            validator: (value) => value == null || value.isEmpty ? 'Username is required' : null,
+          ),
+          const SizedBox(height: 12),
+
+          // Name Fields
+          if (isWideScreen)
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: controllers['firstName'],
+                    enabled: !authState.isLoading,
+                    decoration: InputDecoration(
+                      labelText: 'First Name',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) => value == null || value.isEmpty ? 'First name is required' : null,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: controllers['middleName'],
+                    enabled: !authState.isLoading,
+                    decoration: InputDecoration(
+                      labelText: 'Middle Name (Optional)',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: controllers['lastName'],
+                    enabled: !authState.isLoading,
+                    decoration: InputDecoration(
+                      labelText: 'Last Name',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) => value == null || value.isEmpty ? 'Last name is required' : null,
+                  ),
+                ),
+              ],
+            )
+          else
+            Column(
+              children: [
+                TextFormField(
+                  controller: controllers['firstName'],
+                  enabled: !authState.isLoading,
+                  decoration: InputDecoration(
+                    labelText: 'First Name',
+                    prefixIcon: const Icon(Icons.person_outline),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  validator: (value) => value == null || value.isEmpty ? 'First name is required' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: controllers['middleName'],
+                  enabled: !authState.isLoading,
+                  decoration: InputDecoration(
+                    labelText: 'Middle Name (Optional)',
+                    prefixIcon: const Icon(Icons.person_outline),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: controllers['lastName'],
+                  enabled: !authState.isLoading,
+                  decoration: InputDecoration(
+                    labelText: 'Last Name',
+                    prefixIcon: const Icon(Icons.person_outline),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  validator: (value) => value == null || value.isEmpty ? 'Last name is required' : null,
+                ),
+              ],
+            ),
+
+          const SizedBox(height: 16),
+          Text(
+            "Contact Information",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Colors.green[800],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Email
+          TextFormField(
+            controller: controllers['email'],
+            keyboardType: TextInputType.emailAddress,
+            enabled: !authState.isLoading,
+            decoration: InputDecoration(
+              labelText: 'Email',
+              prefixIcon: const Icon(Icons.email_outlined),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Email is required';
+              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return 'Enter a valid email';
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+
+          // Phone and Language
+          if (isWideScreen)
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: controllers['phone'],
+                    keyboardType: TextInputType.phone,
+                    enabled: !authState.isLoading,
+                    decoration: InputDecoration(
+                      labelText: 'Phone Number',
+                      prefixIcon: const Icon(Icons.phone_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    validator: (value) => value == null || value.isEmpty ? 'Phone number is required' : null,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: controllers['language'],
+                    enabled: !authState.isLoading,
+                    decoration: InputDecoration(
+                      labelText: 'Language',
+                      prefixIcon: const Icon(Icons.language_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            Column(
+              children: [
+                TextFormField(
+                  controller: controllers['phone'],
+                  keyboardType: TextInputType.phone,
+                  enabled: !authState.isLoading,
+                  decoration: InputDecoration(
+                    labelText: 'Phone Number',
+                    prefixIcon: const Icon(Icons.phone_outlined),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  validator: (value) => value == null || value.isEmpty ? 'Phone number is required' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: controllers['language'],
+                  enabled: !authState.isLoading,
+                  decoration: InputDecoration(
+                    labelText: 'Language',
+                    prefixIcon: const Icon(Icons.language_outlined),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: controllers['address1'],
+            enabled: !authState.isLoading,
+            decoration: InputDecoration(
+              labelText: 'Address Line 1 (Optional)',
+              prefixIcon: const Icon(Icons.home_outlined),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: controllers['address2'],
+            enabled: !authState.isLoading,
+            decoration: InputDecoration(
+              labelText: 'Address Line 2 (Optional)',
+              prefixIcon: const Icon(Icons.home_outlined),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: controllers['country'],
+            enabled: !authState.isLoading,
+            decoration: InputDecoration(
+              labelText: 'Country (Optional)',
+              prefixIcon: const Icon(Icons.location_on_outlined),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+          Text(
+            "Account Security",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Colors.green[800],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Password
+          TextFormField(
+            controller: controllers['password'],
+            obscureText: _obscurePassword,
+            enabled: !authState.isLoading,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                onPressed: _togglePasswordVisibility,
+              ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Password is required';
+              if (value.length < 8) return 'Password must be at least 8 characters';
+              if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])').hasMatch(value)) {
+                return 'Password must include uppercase, lowercase, number and special character';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+
+          // Password Requirements
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green[200]!),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Password Requirements:",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green[800],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                _buildRequirementItem("At least 8 characters"),
+                _buildRequirementItem("Mix of uppercase and lowercase"),
+                _buildRequirementItem("Include numbers (0-9)"),
+                _buildRequirementItem("Include special characters"),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: authState.isLoading ? null : () => _submitForm(authNotifier),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[600],
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 4,
+              ),
+              child: authState.isLoading
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white))
+                  : Text('Create Account', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text("Already have an account?"),
+              TextButton(
+                onPressed: () => context.go('/login'),
+                child: Text("Login", style: TextStyle(color: Colors.green[700])),
+              ),
+            ],
+          ),
+          if (authState.error != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red[200]!),
+              ),
+              child: Text(authState.error!, style: TextStyle(color: Colors.red[700])),
+            ),
+          ],
         ],
       ),
     );
@@ -588,85 +614,52 @@ class _SignupFormContent extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.check_circle_outline, color: Colors.green, size: 14),
+          Icon(Icons.check_circle_outline, color: Colors.green[600], size: 16),
           const SizedBox(width: 6),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 12))),
+          Expanded(child: Text(text, style: TextStyle(color: Colors.grey[700]))),
         ],
       ),
     );
   }
 
-  Widget _buildSocialSignupButtons(BuildContext context) {
+  Widget _buildSocialSignupButtons(AuthState authState, AuthNotifier authNotifier) {
+    final buttons = [
+      _buildSocialButton('Google', Icons.g_mobiledata, Colors.red, () => authNotifier.googleSignIn(context)),
+      _buildSocialButton('Facebook', Icons.facebook, Colors.blue, () => authNotifier.facebookSignIn(context)),
+      _buildSocialButton('Apple', Icons.apple, Colors.black, () => authNotifier.appleSignIn(context)),
+    ];
+
     return Column(
       children: [
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            icon: const Icon(Icons.g_mobiledata, color: Color(0xFFDB4437), size: 20),
-            label: const Text('Sign up with Google', style: TextStyle(color: Colors.black87, fontSize: 14)),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              side: const BorderSide(color: Colors.grey),
-            ),
-            onPressed: isLoading ? null : () => authNotifier.googleSignIn(context),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            icon: const Icon(Icons.facebook, color: Color(0xFF4267B2), size: 20),
-            label: const Text('Sign up with Facebook', style: TextStyle(color: Colors.black87, fontSize: 14)),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              side: const BorderSide(color: Colors.grey),
-            ),
-            onPressed: isLoading ? null : () => authNotifier.facebookSignIn(context),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            icon: const Icon(Icons.apple, color: Colors.black, size: 20),
-            label: const Text('Sign up with Apple', style: TextStyle(color: Colors.black87, fontSize: 14)),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              side: const BorderSide(color: Colors.grey),
-            ),
-            onPressed: isLoading ? null : () => authNotifier.appleSignIn(context),
-          ),
+        const Divider(thickness: 1),
+        const SizedBox(height: 16),
+        Text("Or sign up with", style: TextStyle(color: Colors.grey[600])),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: buttons,
         ),
       ],
     );
   }
 
-  Widget _buildSubmitButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        icon: isLoading
-            ? const SizedBox(
-          width: 18,
-          height: 18,
-          child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-        )
-            : const Icon(Icons.person_add, color: Colors.white, size: 20),
-        label: Text(
-          isLoading ? 'Creating Account...' : 'Create Account',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+  Widget _buildSocialButton(String label, IconData icon, Color color, VoidCallback onPressed) {
+    return Column(
+      children: [
+        IconButton(
+          onPressed: onPressed,
+          icon: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withOpacity(0.3)),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
         ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF0A2463),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          elevation: 2,
-        ),
-        onPressed: isLoading ? null : submitForm,
-      ),
+        Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 12)),
+      ],
     );
   }
 }
