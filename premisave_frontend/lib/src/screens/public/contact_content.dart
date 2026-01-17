@@ -5,8 +5,12 @@ class ContactContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 1200;
+    final isMediumScreen = screenWidth > 600;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isLargeScreen ? 32 : 24),
       child: Column(
         children: [
           const Text(
@@ -19,79 +23,151 @@ class ContactContent extends StatelessWidget {
             style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
           const SizedBox(height: 32),
-          _ContactCard(
-            icon: Icons.location_on,
-            title: 'Visit Us',
-            items: [
-              'Premisave Plaza, 123 Business District',
-              'Nairobi, Kenya',
-              'P.O. Box 12345-00100',
-            ],
-            color: Colors.green,
+
+          // Responsive contact cards layout
+          isLargeScreen
+              ? _buildContactCardsRow()
+              : Column(
+            children: _buildContactCards(),
+            mainAxisSize: MainAxisSize.min,
           ),
-          const SizedBox(height: 16),
-          _ContactCard(
-            icon: Icons.phone,
-            title: 'Call Us',
-            items: [
-              'Customer Service: +254-700-123456',
-              'Technical Support: +254-700-654321',
-              'Emergency: +254-720-987654',
-            ],
-            color: Colors.blue,
-          ),
-          const SizedBox(height: 16),
-          _ContactCard(
-            icon: Icons.email,
-            title: 'Email Us',
-            items: [
-              'info@premisave.co.ke',
-              'support@premisave.co.ke',
-              'admin@premisave.co.ke',
-            ],
-            color: Colors.orange,
-          ),
-          const SizedBox(height: 16),
-          _ContactCard(
-            icon: Icons.access_time,
-            title: 'Hours',
-            items: [
-              'Mon-Fri: 8:00 AM - 6:00 PM',
-              'Saturday: 9:00 AM - 2:00 PM',
-              'Sunday & Holidays: Closed',
-            ],
-            color: Colors.purple,
-          ),
+
           const SizedBox(height: 32),
           const Text(
             'Our Team',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 16),
+
+          // Responsive team grid
           GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isLargeScreen ? 4 : (isMediumScreen ? 3 : 2),
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: isLargeScreen ? 0.8 : 1.1,
+            ),
+            itemCount: 4,
+            itemBuilder: (context, index) => _TeamCard(
+              index: index,
+              isLargeScreen: isLargeScreen,
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          const Text(
+            'Regional Offices',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 16),
+
+          // Responsive office layout
+          isLargeScreen
+              ? GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 1.1,
+              childAspectRatio: 3,
             ),
             itemCount: 4,
-            itemBuilder: (context, index) => _TeamCard(index: index),
+            itemBuilder: (context, index) => _OfficeCard(
+              name: ['Nairobi Office', 'Mombasa Office', 'Kisumu Office', 'Nakuru Office'][index],
+            ),
+          )
+              : Column(
+            children: ['Nairobi Office', 'Mombasa Office', 'Kisumu Office', 'Nakuru Office']
+                .map((office) => _OfficeCard(name: office))
+                .toList(),
           ),
-          const SizedBox(height: 32),
-          const Text(
-            'Regional Offices',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 16),
-          ...['Nairobi Office', 'Mombasa Office', 'Kisumu Office', 'Nakuru Office']
-              .map((office) => _OfficeCard(name: office))
-              .toList(),
         ],
       ),
     );
+  }
+
+  Widget _buildContactCardsRow() {
+    const cards = [
+      _ContactCard(
+        icon: Icons.location_on,
+        title: 'Visit Us',
+        items: ['Premisave Plaza', 'Nairobi, Kenya'],
+        color: Colors.green,
+      ),
+      _ContactCard(
+        icon: Icons.phone,
+        title: 'Call Us',
+        items: ['+254-700-123456', '24/7 Support'],
+        color: Colors.blue,
+      ),
+      _ContactCard(
+        icon: Icons.email,
+        title: 'Email Us',
+        items: ['info@premisave.co.ke', 'Quick Response'],
+        color: Colors.orange,
+      ),
+      _ContactCard(
+        icon: Icons.access_time,
+        title: 'Hours',
+        items: ['Mon-Fri: 8AM-6PM', 'Sat: 9AM-2PM'],
+        color: Colors.purple,
+      ),
+    ];
+
+    return Row(
+      children: cards.map((card) => Expanded(child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: card,
+      ))).toList(),
+    );
+  }
+
+  List<Widget> _buildContactCards() {
+    return [
+      _ContactCard(
+        icon: Icons.location_on,
+        title: 'Visit Us',
+        items: [
+          'Premisave Plaza, 123 Business District',
+          'Nairobi, Kenya',
+          'P.O. Box 12345-00100',
+        ],
+        color: Colors.green,
+      ),
+      const SizedBox(height: 16),
+      _ContactCard(
+        icon: Icons.phone,
+        title: 'Call Us',
+        items: [
+          'Customer Service: +254-700-123456',
+          'Technical Support: +254-700-654321',
+        ],
+        color: Colors.blue,
+      ),
+      const SizedBox(height: 16),
+      _ContactCard(
+        icon: Icons.email,
+        title: 'Email Us',
+        items: [
+          'info@premisave.co.ke',
+          'support@premisave.co.ke',
+        ],
+        color: Colors.orange,
+      ),
+      const SizedBox(height: 16),
+      _ContactCard(
+        icon: Icons.access_time,
+        title: 'Hours',
+        items: [
+          'Mon-Fri: 8:00 AM - 6:00 PM',
+          'Saturday: 9:00 AM - 2:00 PM',
+        ],
+        color: Colors.purple,
+      ),
+    ];
   }
 }
 
@@ -123,7 +199,8 @@ class _ContactCard extends StatelessWidget {
           ),
         ),
         padding: const EdgeInsets.all(20),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               padding: const EdgeInsets.all(12),
@@ -133,27 +210,20 @@ class _ContactCard extends StatelessWidget {
               ),
               child: Icon(icon, color: color, size: 24),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: color,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...items.map((item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(item, style: const TextStyle(fontSize: 14)),
-                  )),
-                ],
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: color,
               ),
             ),
+            const SizedBox(height: 8),
+            ...items.map((item) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(item, style: const TextStyle(fontSize: 14)),
+            )),
           ],
         ),
       ),
@@ -163,33 +233,37 @@ class _ContactCard extends StatelessWidget {
 
 class _TeamCard extends StatelessWidget {
   final int index;
+  final bool isLargeScreen;
 
-  const _TeamCard({required this.index});
+  const _TeamCard({
+    required this.index,
+    required this.isLargeScreen,
+  });
 
   final List<Map<String, dynamic>> team = const [
     {
       'name': 'John Mwangi',
-      'role': 'Operations Head',
+      'role': 'Operations',
       'email': 'john@premisave.co.ke',
-      'image': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+      'image': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
     },
     {
       'name': 'Sarah Kimani',
-      'role': 'Technical Manager',
+      'role': 'Technical',
       'email': 'sarah@premisave.co.ke',
-      'image': 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=300',
+      'image': 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200',
     },
     {
       'name': 'David Ochieng',
-      'role': 'Support Lead',
+      'role': 'Support',
       'email': 'david@premisave.co.ke',
-      'image': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300',
+      'image': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200',
     },
     {
       'name': 'Grace Wambui',
-      'role': 'Finance Director',
+      'role': 'Finance',
       'email': 'grace@premisave.co.ke',
-      'image': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+      'image': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
     },
   ];
 
@@ -201,7 +275,7 @@ class _TeamCard extends StatelessWidget {
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isLargeScreen ? 12 : 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
@@ -211,27 +285,41 @@ class _TeamCard extends StatelessWidget {
           ),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircleAvatar(
-              radius: 30,
+              radius: isLargeScreen ? 24 : 30,
               backgroundImage: NetworkImage(member['image']),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: isLargeScreen ? 8 : 12),
             Text(
               member['name'],
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: isLargeScreen ? 14 : 15,
+                fontWeight: FontWeight.w700,
+              ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               member['role'],
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: isLargeScreen ? 12 : 13,
+                color: Colors.grey[600],
+              ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: isLargeScreen ? 6 : 8),
             Text(
               member['email'],
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: isLargeScreen ? 11 : 12,
+                fontWeight: FontWeight.w500,
+              ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
