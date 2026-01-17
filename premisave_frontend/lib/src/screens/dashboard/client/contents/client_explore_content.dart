@@ -7,343 +7,304 @@ class ClientExploreContent extends StatefulWidget {
   State<ClientExploreContent> createState() => _ClientExploreContentState();
 }
 
-class _ClientExploreContentState extends State<ClientExploreContent> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final List<String> _categories = ['All', 'Apartments', 'Houses', 'Villas', 'Studios', 'Cabins'];
+class _ClientExploreContentState extends State<ClientExploreContent> {
+  final List<String> _categories = [
+    'All',
+    'Apartments',
+    'Homes',
+    'Studios',
+    'Villas',
+    'Cabins',
+    'Beachfront',
+    'City view',
+    'Luxury',
+  ];
+
   final List<String> _counties = [
     'Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Eldoret', 'Naivasha',
-    'Thika', 'Kitale', 'Malindi', 'Nyeri', 'Meru', 'Kisii'
+    'Thika', 'Kitale', 'Malindi', 'Nyeri', 'Meru', 'Kisii', 'Machakos'
   ];
 
   int _selectedCategoryIndex = 0;
   int _selectedCountyIndex = 0;
-  String _searchQuery = '';
   String _rentalType = 'daily'; // 'daily' or 'monthly'
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              floating: true,
-              snap: true,
-              pinned: true,
-              expandedHeight: 200,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  color: const Color(0xFF00A699),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Find your perfect stay',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            fontFamily: 'Circular',
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Book apartments, homes, and services across Kenya',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontFamily: 'Circular',
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Search Bar
-                        Container(
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(28),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                                  child: TextField(
-                                    decoration: InputDecoration(
-                                      hintText: 'Search destinations, properties, or services',
-                                      hintStyle: const TextStyle(color: Colors.grey),
-                                      border: InputBorder.none,
-                                      icon: const Icon(Icons.search, color: Color(0xFF00A699)),
-                                    ),
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _searchQuery = value;
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF00A699),
-                                  borderRadius: BorderRadius.circular(28),
-                                ),
-                                child: const Icon(Icons.tune, color: Colors.white),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(120),
-                child: Container(
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      // Rental Type Toggle
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                        child: Row(
-                          children: [
-                            _buildRentalTypeButton('Daily Rentals', 'daily'),
-                            const SizedBox(width: 12),
-                            _buildRentalTypeButton('Monthly Rentals', 'monthly'),
-                          ],
-                        ),
-                      ),
-
-                      // County Filter
-                      SizedBox(
-                        height: 50,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          itemCount: _counties.length,
-                          itemBuilder: (context, index) {
-                            final isSelected = _selectedCountyIndex == index;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 12),
-                              child: ChoiceChip(
-                                label: Text(_counties[index]),
-                                selected: isSelected,
-                                onSelected: (selected) {
-                                  setState(() {
-                                    _selectedCountyIndex = index;
-                                  });
-                                },
-                                selectedColor: const Color(0xFF00A699),
-                                backgroundColor: Colors.white,
-                                labelStyle: TextStyle(
-                                  color: isSelected ? Colors.white : Colors.grey[700],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  side: BorderSide(
-                                    color: isSelected ? const Color(0xFF00A699) : Colors.grey[300]!,
-                                    width: 1,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-
-                      // Category Tabs
-                      TabBar(
-                        controller: _tabController,
-                        isScrollable: true,
-                        labelColor: const Color(0xFF00A699),
-                        unselectedLabelColor: Colors.grey,
-                        indicatorColor: const Color(0xFF00A699),
-                        tabs: const [
-                          Tab(text: 'Properties'),
-                          Tab(text: 'Services'),
-                          Tab(text: 'Experiences'),
-                          Tab(text: 'Chefs'),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ];
-        },
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            // Properties Tab
-            _buildPropertiesTab(),
-
-            // Services Tab
-            _buildServicesTab(),
-
-            // Experiences Tab
-            _buildExperiencesTab(),
-
-            // Chefs Tab
-            _buildChefsTab(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRentalTypeButton(String label, String value) {
-    final isSelected = _rentalType == value;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _rentalType = value;
-          });
-        },
-        child: Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF00A699) : Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: isSelected ? const Color(0xFF00A699) : Colors.grey[300]!,
-              width: 2,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey[700],
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPropertiesTab() {
-    final properties = [
-      {
-        'image': 'https://images.unsplash.com/photo-1613490493576-7fde63acd811',
-        'title': 'Modern Apartment in Nairobi CBD',
-        'location': 'Nairobi, Kenya',
-        'price': _rentalType == 'daily' ? 'KSh 8,500 / night' : 'KSh 150,000 / month',
-        'rating': 4.92,
-        'reviews': 128,
-        'type': 'Apartment',
-        'badge': 'Guest favorite',
-      },
-      {
-        'image': 'https://images.unsplash.com/photo-1518780664697-55e3ad937233',
-        'title': 'Luxury Villa with Ocean View',
-        'location': 'Mombasa, Kenya',
-        'price': _rentalType == 'daily' ? 'KSh 25,000 / night' : 'KSh 450,000 / month',
-        'rating': 4.88,
-        'reviews': 89,
-        'type': 'Villa',
-        'badge': 'Trending',
-      },
-      {
-        'image': 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00',
-        'title': 'Cozy Cabin in the Mountains',
-        'location': 'Mount Kenya',
-        'price': _rentalType == 'daily' ? 'KSh 12,000 / night' : 'KSh 220,000 / month',
-        'rating': 4.95,
-        'reviews': 56,
-        'type': 'Cabin',
-        'badge': null,
-      },
-      {
-        'image': 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461',
-        'title': 'City Center Studio Apartment',
-        'location': 'Nairobi West',
-        'price': _rentalType == 'daily' ? 'KSh 6,500 / night' : 'KSh 120,000 / month',
-        'rating': 4.75,
-        'reviews': 203,
-        'type': 'Studio',
-        'badge': 'Popular',
-      },
-      {
-        'image': 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5',
-        'title': 'Beachfront House in Diani',
-        'location': 'Diani Beach',
-        'price': _rentalType == 'daily' ? 'KSh 30,000 / night' : 'KSh 550,000 / month',
-        'rating': 4.98,
-        'reviews': 67,
-        'type': 'House',
-        'badge': 'Luxury',
-      },
-      {
-        'image': 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9',
-        'title': 'Luxury Penthouse with Pool',
-        'location': 'Westlands, Nairobi',
-        'price': _rentalType == 'daily' ? 'KSh 45,000 / night' : 'KSh 800,000 / month',
-        'rating': 4.96,
-        'reviews': 42,
-        'type': 'Penthouse',
-        'badge': 'Premium',
-      },
-    ];
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    final crossAxisCount = screenWidth < 600 ? 2 : (screenWidth < 900 ? 3 : 4);
 
     return CustomScrollView(
       slivers: [
+        // Header with Search
+        SliverAppBar(
+          floating: true,
+          snap: true,
+          pinned: true,
+          expandedHeight: 180,
+          backgroundColor: Colors.white,
+          flexibleSpace: FlexibleSpaceBar(
+            collapseMode: CollapseMode.pin,
+            background: Container(
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // Search Box
+                    Container(
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'WHERE',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Search destinations',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 30,
+                            color: Colors.grey[300],
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'CHECK IN / OUT',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Add dates',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 30,
+                            color: Colors.grey[300],
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'GUESTS',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Add guests',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.search,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(130),
+            child: Container(
+              color: Colors.white,
+              child: Column(
+                children: [
+                  // Rental Type Toggle
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Row(
+                      children: [
+                        _buildRentalTypeButton('Daily Rentals', 'daily'),
+                        const SizedBox(width: 12),
+                        _buildRentalTypeButton('Monthly Rentals', 'monthly'),
+                      ],
+                    ),
+                  ),
+
+                  // County Filter
+                  SizedBox(
+                    height: 48,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      itemCount: _counties.length,
+                      itemBuilder: (context, index) {
+                        final isSelected = _selectedCountyIndex == index;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text(_counties[index]),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedCountyIndex = index;
+                              });
+                            },
+                            backgroundColor: Colors.white,
+                            selectedColor: Colors.black,
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: BorderSide(
+                                color: isSelected ? Colors.black : Colors.grey[300]!,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // Category Tabs
+                  SizedBox(
+                    height: 48,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      itemCount: _categories.length,
+                      itemBuilder: (context, index) {
+                        final isSelected = _selectedCategoryIndex == index;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text(_categories[index]),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedCategoryIndex = index;
+                              });
+                            },
+                            backgroundColor: isSelected ? Colors.black : Colors.grey[50],
+                            selectedColor: Colors.black,
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: BorderSide(
+                                color: isSelected ? Colors.black : Colors.grey[300]!,
+                                width: isSelected ? 0 : 1,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Property Listings
         SliverPadding(
           padding: const EdgeInsets.all(24),
           sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
               crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 0.75,
+              mainAxisSpacing: 24,
+              childAspectRatio: 0.72, // Smaller aspect ratio for smaller cards
             ),
             delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                final property = properties[index];
                 return _PropertyCard(
-                  imageUrl: property['image'] as String,
-                  title: property['title'] as String,
-                  location: property['location'] as String,
-                  price: property['price'] as String,
-                  rating: property['rating'] as double,
-                  reviews: property['reviews'] as int,
-                  type: property['type'] as String,
-                  badge: property['badge'] as String?,
+                  property: _sampleProperties[index % _sampleProperties.length],
+                  rentalType: _rentalType,
                 );
               },
-              childCount: properties.length,
+              childCount: 16,
             ),
           ),
         ),
@@ -351,205 +312,272 @@ class _ClientExploreContentState extends State<ClientExploreContent> with Single
     );
   }
 
-  Widget _buildServicesTab() {
-    return const Center(
-      child: Text(
-        'Services Content - Coming Soon',
-        style: TextStyle(fontSize: 18, color: Colors.grey),
-      ),
-    );
-  }
-
-  Widget _buildExperiencesTab() {
-    return const Center(
-      child: Text(
-        'Experiences Content - Coming Soon',
-        style: TextStyle(fontSize: 18, color: Colors.grey),
-      ),
-    );
-  }
-
-  Widget _buildChefsTab() {
-    return const Center(
-      child: Text(
-        'Chefs Content - Coming Soon',
-        style: TextStyle(fontSize: 18, color: Colors.grey),
+  Widget _buildRentalTypeButton(String label, String value) {
+    final isSelected = _rentalType == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _rentalType = value;
+        });
+      },
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.grey[300]!,
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
 class _PropertyCard extends StatelessWidget {
-  final String imageUrl;
-  final String title;
-  final String location;
-  final String price;
-  final double rating;
-  final int reviews;
-  final String type;
-  final String? badge;
+  final Map<String, dynamic> property;
+  final String rentalType;
 
   const _PropertyCard({
-    required this.imageUrl,
-    required this.title,
-    required this.location,
-    required this.price,
-    required this.rating,
-    required this.reviews,
-    required this.type,
-    this.badge,
+    required this.property,
+    required this.rentalType,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        // Navigate to property details
-        // context.push('/property/${propertyId}');
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Property Image
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  image: DecorationImage(
-                    image: NetworkImage(imageUrl),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    if (badge != null)
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            badge!,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ),
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.favorite_border,
-                          size: 20,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                  ],
+    final price = rentalType == 'daily'
+        ? '${property['dailyPrice']} / night'
+        : '${property['monthlyPrice']} / month';
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Property Image
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                image: DecorationImage(
+                  image: NetworkImage(property['image']),
+                  fit: BoxFit.cover,
                 ),
               ),
-            ),
-
-            // Property Details
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Stack(
                 children: [
-                  Text(
-                    type,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Circular',
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    location,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                      fontFamily: 'Circular',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.star, size: 14, color: Colors.black87),
-                          const SizedBox(width: 4),
-                          Text(
-                            rating.toString(),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '($reviews reviews)',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
                       ),
-                      Text(
-                        price,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF00A699),
-                          fontFamily: 'Circular',
+                      child: Icon(
+                        Icons.favorite_border,
+                        size: 18,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                  if (property['badge'] != null)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          property['badge'],
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+
+          // Property Details
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      property['location'],
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Icon(Icons.star, size: 12, color: Colors.black87),
+                        const SizedBox(width: 4),
+                        Text(
+                          property['rating'].toString(),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  property['title'],
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Circular',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  property['type'],
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  price,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                    fontFamily: 'Circular',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
+// Sample properties data
+final List<Map<String, dynamic>> _sampleProperties = [
+  {
+    'image': 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&auto=format&fit=crop',
+    'title': 'Modern Apartment in Nairobi CBD',
+    'location': 'Nairobi, Kenya',
+    'dailyPrice': 'KSh 8,500',
+    'monthlyPrice': 'KSh 150,000',
+    'rating': 4.92,
+    'type': 'Apartment',
+    'badge': 'Guest favorite',
+  },
+  {
+    'image': 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=800&auto=format&fit=crop',
+    'title': 'Luxury Villa with Ocean View',
+    'location': 'Mombasa, Kenya',
+    'dailyPrice': 'KSh 25,000',
+    'monthlyPrice': 'KSh 450,000',
+    'rating': 4.88,
+    'type': 'Villa',
+    'badge': 'Trending',
+  },
+  {
+    'image': 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w-800&auto=format&fit=crop',
+    'title': 'Cozy Cabin in the Mountains',
+    'location': 'Mount Kenya',
+    'dailyPrice': 'KSh 12,000',
+    'monthlyPrice': 'KSh 220,000',
+    'rating': 4.95,
+    'type': 'Cabin',
+    'badge': 'Popular',
+  },
+  {
+    'image': 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&auto=format&fit=crop',
+    'title': 'City Center Studio Apartment',
+    'location': 'Nairobi West',
+    'dailyPrice': 'KSh 6,500',
+    'monthlyPrice': 'KSh 120,000',
+    'rating': 4.75,
+    'type': 'Studio',
+    'badge': null,
+  },
+  {
+    'image': 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&auto=format&fit=crop',
+    'title': 'Beachfront House in Diani',
+    'location': 'Diani Beach',
+    'dailyPrice': 'KSh 30,000',
+    'monthlyPrice': 'KSh 550,000',
+    'rating': 4.98,
+    'type': 'House',
+    'badge': 'Luxury',
+  },
+  {
+    'image': 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&auto=format&fit=crop',
+    'title': 'Luxury Penthouse with Pool',
+    'location': 'Westlands, Nairobi',
+    'dailyPrice': 'KSh 45,000',
+    'monthlyPrice': 'KSh 800,000',
+    'rating': 4.96,
+    'type': 'Penthouse',
+    'badge': 'Premium',
+  },
+  {
+    'image': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&fit=crop',
+    'title': 'Modern Loft in Kilimani',
+    'location': 'Nairobi, Kilimani',
+    'dailyPrice': 'KSh 10,500',
+    'monthlyPrice': 'KSh 190,000',
+    'rating': 4.89,
+    'type': 'Loft',
+    'badge': 'New',
+  },
+  {
+    'image': 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop',
+    'title': 'Spacious Family Home',
+    'location': 'Karen, Nairobi',
+    'dailyPrice': 'KSh 35,000',
+    'monthlyPrice': 'KSh 650,000',
+    'rating': 4.91,
+    'type': 'Family home',
+    'badge': 'Spacious',
+  },
+];
