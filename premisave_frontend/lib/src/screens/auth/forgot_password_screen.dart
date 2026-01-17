@@ -3,15 +3,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth/auth_provider.dart';
 
-class ForgotPasswordScreen extends ConsumerWidget {
-  const ForgotPasswordScreen({super.key});
+class ResetPasswordScreen extends ConsumerStatefulWidget {
+  final String token;
+
+  const ResetPasswordScreen({super.key, required this.token});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
-    final emailController = TextEditingController();
+  ConsumerState<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+}
 
-    final isLargeScreen = MediaQuery.of(context).size.width > 700;
+class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
+  bool _passwordVisible = false;
+  bool _confirmPasswordVisible = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 700;
 
     return Scaffold(
       body: Container(
@@ -24,31 +36,16 @@ class ForgotPasswordScreen extends ConsumerWidget {
         ),
         child: Center(
           child: isLargeScreen
-              ? _buildDesktopLayout(
-            context,
-            authState.isLoading,
-            emailController,
-            ref,
-          )
-              : _buildMobileLayout(
-            context,
-            authState.isLoading,
-            emailController,
-            ref,
-          ),
+              ? _buildDesktopLayout(context)
+              : _buildMobileLayout(context),
         ),
       ),
     );
   }
 
-  Widget _buildDesktopLayout(
-      BuildContext context,
-      bool isLoading,
-      TextEditingController emailController,
-      WidgetRef ref,
-      ) {
+  Widget _buildDesktopLayout(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 850, maxHeight: 500),
+      constraints: const BoxConstraints(maxWidth: 850, maxHeight: 600),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -74,10 +71,10 @@ class ForgotPasswordScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.lock_reset_outlined, color: Colors.white, size: 80),
+                    Icon(Icons.lock_outline, color: Colors.white, size: 80),
                     SizedBox(height: 24),
                     Text(
-                      "Reset Your Password",
+                      "Set New Password",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 26,
@@ -87,8 +84,8 @@ class ForgotPasswordScreen extends ConsumerWidget {
                     ),
                     SizedBox(height: 16),
                     Text(
-                      "Enter your email address and we'll send you a link to reset your password. "
-                          "Secure access to your real estate investments.",
+                      "Create a strong new password to secure your account. "
+                          "Make sure it's unique and easy to remember.",
                       style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.5),
                     ),
                   ],
@@ -106,16 +103,9 @@ class ForgotPasswordScreen extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: SingleChildScrollView(
-                      child: _buildFormContent(
-                        isLoading,
-                        emailController,
-                        context,
-                        ref,
-                      ),
+                      child: _buildForm(),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  _buildBackToLoginLink(isLoading, context),
                 ],
               ),
             ),
@@ -125,12 +115,7 @@ class ForgotPasswordScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMobileLayout(
-      BuildContext context,
-      bool isLoading,
-      TextEditingController emailController,
-      WidgetRef ref,
-      ) {
+  Widget _buildMobileLayout(BuildContext context) {
     return SingleChildScrollView(
       child: Container(
         margin: const EdgeInsets.all(24),
@@ -144,10 +129,10 @@ class ForgotPasswordScreen extends ConsumerWidget {
         ),
         child: Column(
           children: [
-            const Icon(Icons.lock_reset_outlined, color: Color(0xFF0A2463), size: 70),
+            const Icon(Icons.lock_outline, color: Color(0xFF0A2463), size: 70),
             const SizedBox(height: 16),
             const Text(
-              "Forgot Password?",
+              "Set New Password",
               style: TextStyle(
                 fontSize: 26,
                 color: Color(0xFF0A2463),
@@ -156,225 +141,247 @@ class ForgotPasswordScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              "Enter your email to receive a password reset link",
+              "Create a strong new password for your account",
               style: TextStyle(color: Colors.black54),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            _buildFormContent(
-              isLoading,
-              emailController,
-              context,
-              ref,
-            ),
-            const SizedBox(height: 16),
-            _buildBackToLoginLink(isLoading, context),
+            _buildForm(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFormContent(
-      bool isLoading,
-      TextEditingController emailController,
-      BuildContext context,
-      WidgetRef ref,
-      ) {
-    return Column(
-      children: [
-        // Email Field
-        TextField(
-          controller: emailController,
-          keyboardType: TextInputType.emailAddress,
-          enabled: !isLoading,
-          decoration: InputDecoration(
-            labelText: 'Email Address',
-            hintText: 'Enter your registered email',
-            prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            filled: !isLoading,
-            fillColor: Colors.grey[50],
+  Widget _buildForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          // New Password Field
+          TextFormField(
+            controller: _newPasswordController,
+            obscureText: !_passwordVisible,
+            enabled: !_isLoading,
+            decoration: InputDecoration(
+              labelText: 'New Password',
+              hintText: 'Enter new password',
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.grey,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _passwordVisible = !_passwordVisible;
+                  });
+                },
+              ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: !_isLoading,
+              fillColor: Colors.grey[50],
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter a new password';
+              }
+              if (value.length < 6) {
+                return 'Password must be at least 6 characters';
+              }
+              return null;
+            },
           ),
-        ),
 
-        // Instructions
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFf8f9fa),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+
+          // Confirm Password Field
+          TextFormField(
+            controller: _confirmPasswordController,
+            obscureText: !_confirmPasswordVisible,
+            enabled: !_isLoading,
+            decoration: InputDecoration(
+              labelText: 'Confirm Password',
+              hintText: 'Confirm your new password',
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _confirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.grey,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _confirmPasswordVisible = !_confirmPasswordVisible;
+                  });
+                },
+              ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: !_isLoading,
+              fillColor: Colors.grey[50],
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please confirm your password';
+              }
+              if (value != _newPasswordController.text) {
+                return 'Passwords do not match';
+              }
+              return null;
+            },
           ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+
+          // Password requirements
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFf8f9fa),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.security_outlined, color: Color(0xFF0A2463), size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      "Password requirements:",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0A2463),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.circle, size: 8, color: Colors.grey),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "At least 6 characters long",
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.circle, size: 8, color: Colors.grey),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Use a mix of letters, numbers, and symbols",
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.circle, size: 8, color: Colors.grey),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Avoid using common words or personal information",
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Reset Password Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: _isLoading
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+                  : const Icon(Icons.lock_reset_outlined, color: Colors.white),
+              label: Text(
+                _isLoading ? 'Resetting...' : 'Reset Password',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0A2463),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 3,
+              ),
+              onPressed: _isLoading
+                  ? null
+                  : () async {
+                FocusScope.of(context).unfocus();
+
+                if (_formKey.currentState!.validate()) {
+                  setState(() => _isLoading = true);
+
+                  try {
+                    await ref.read(authProvider.notifier).confirmResetPassword(
+                      widget.token,
+                      _newPasswordController.text,
+                      _confirmPasswordController.text,
+                    );
+
+                    // Success message shown by provider
+                    // Wait 2 seconds then redirect to login
+                    await Future.delayed(const Duration(seconds: 2));
+                    if (mounted) {
+                      context.go('/login');
+                    }
+                  } catch (e) {
+                    // Error shown by provider
+                  } finally {
+                    if (mounted) {
+                      setState(() => _isLoading = false);
+                    }
+                  }
+                }
+              },
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Back to Login Link
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  Icon(Icons.info_outline, color: Color(0xFF0A2463), size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    "What to expect:",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0A2463),
-                    ),
+              const Icon(Icons.arrow_back_outlined, color: Colors.grey, size: 18),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: _isLoading ? null : () => context.go('/login'),
+                child: const Text(
+                  'Back to Login',
+                  style: TextStyle(
+                    color: Color(0xFF0A2463),
+                    fontWeight: FontWeight.w500,
                   ),
-                ],
-              ),
-              SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.circle, size: 8, color: Colors.grey),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "A secure password reset link will be sent to your email",
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.circle, size: 8, color: Colors.grey),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "The link will expire in 24 hours for security",
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.circle, size: 8, color: Colors.grey),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "Check your spam folder if you don't see the email",
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // Send Reset Link Button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            icon: isLoading
-                ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            )
-                : const Icon(Icons.send_outlined, color: Colors.white),
-            label: Text(
-              isLoading ? 'Sending...' : 'Send Reset Link',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0A2463),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 3,
-            ),
-            onPressed: isLoading
-                ? null
-                : () async {
-              FocusScope.of(context).unfocus();
-              final email = emailController.text.trim();
-
-              if (email.isEmpty) {
-                _showSnackBar(context, 'Please enter your email address', Colors.red);
-                return;
-              }
-
-              // Validate email format
-              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
-                _showSnackBar(context, 'Please enter a valid email address', Colors.red);
-                return;
-              }
-
-              try {
-                // Call the forgotPassword method from auth provider
-                await ref.read(authProvider.notifier).forgotPassword(email);
-
-                // Show success message
-                _showSnackBar(
-                  context,
-                  'Password reset link sent to your email',
-                  const Color(0xFF0A2463),
-                );
-
-                // Clear the email field
-                emailController.clear();
-
-                // Navigate back to login after a short delay
-                await Future.delayed(const Duration(seconds: 2));
-                if (context.mounted) {
-                  context.go('/login');
-                }
-              } catch (e) {
-                // Error is already shown by the provider via ToastUtils
-                // You can also show a snackbar here if needed
-                _showSnackBar(
-                  context,
-                  'Failed to send reset link. Please try again.',
-                  Colors.red,
-                );
-              }
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBackToLoginLink(bool isLoading, BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(Icons.arrow_back_outlined, color: Colors.grey, size: 18),
-        const SizedBox(width: 8),
-        TextButton(
-          onPressed: isLoading ? null : () => context.go('/login'),
-          child: const Text(
-            'Back to Login',
-            style: TextStyle(
-              color: Color(0xFF0A2463),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showSnackBar(BuildContext context, String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
+        ],
       ),
     );
   }
