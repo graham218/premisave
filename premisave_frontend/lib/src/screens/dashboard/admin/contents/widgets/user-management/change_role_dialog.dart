@@ -35,6 +35,16 @@ class _ChangeRoleDialogState extends State<ChangeRoleDialog> {
     return name[0].toUpperCase() + name.substring(1);
   }
 
+  // Convert role to backend format
+  String _convertRoleToBackendFormat(Role role) {
+    switch (role) {
+      case Role.homeOwner:
+        return 'HOME_OWNER'; // Add underscore for backend
+      default:
+        return role.name.toUpperCase();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -84,7 +94,8 @@ class _ChangeRoleDialogState extends State<ChangeRoleDialog> {
           onPressed: () {
             Navigator.pop(context);
             if (_selectedRole != widget.user.role) {
-              widget.onChange(_selectedRole.name.toUpperCase());
+              // Use the conversion function
+              widget.onChange(_convertRoleToBackendFormat(_selectedRole));
             }
           },
           child: const Text('Update Role'),
