@@ -6,6 +6,7 @@ import '../../../providers/auth/auth_provider.dart';
 import '../../public/about_content.dart';
 import '../../public/contact_content.dart';
 import 'contents/client_dashboard_content.dart';
+import 'contents/client_explore_content.dart';
 import 'contents/client_bookings_content.dart';
 import 'contents/client_wishlists_content.dart';
 import 'contents/client_payments_content.dart';
@@ -20,18 +21,15 @@ class ClientDashboard extends ConsumerStatefulWidget {
 
 class _ClientDashboardState extends ConsumerState<ClientDashboard> {
   int _selectedIndex = 0;
-  String _currentRoute = '/dashboard/client';
+  String _currentRoute = '/client/explore'; // Changed to /client/explore
 
   final List<Map<String, dynamic>> _menuItems = [
-    {'icon': Icons.search, 'label': 'Explore', 'route': '/dashboard/client'},
+    {'icon': Icons.search, 'label': 'Explore', 'route': '/client/explore'},
+    {'icon': Icons.home, 'label': 'Home', 'route': '/dashboard/client'}, // Home tab
     {'icon': Icons.calendar_month, 'label': 'Bookings', 'route': '/client/bookings'},
     {'icon': Icons.favorite_border, 'label': 'Wishlists', 'route': '/client/wishlists'},
     {'icon': Icons.payments, 'label': 'Payments', 'route': '/client/payments'},
     {'icon': Icons.message, 'label': 'Messages', 'route': '/client/messages'},
-    {'icon': Icons.account_circle, 'label': 'Profile', 'route': '/profile'},
-    {'icon': Icons.help_outline, 'label': 'Help', 'route': '/client/help'},
-    {'icon': Icons.info_outline, 'label': 'About Us', 'route': '/client/about'},
-    {'icon': Icons.contact_support, 'label': 'Contact', 'route': '/client/contact'},
   ];
 
   void _navigateToRoute(String route) {
@@ -52,13 +50,15 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
         return const ClientPaymentsContent();
       case '/client/messages':
         return const ClientMessagesContent();
-      case '/client/contact':
-        return const ContactContent();
       case '/client/about':
         return const AboutContent();
+      case '/client/contact':
+        return const ContactContent();
       case '/dashboard/client':
-      default:
         return const ClientDashboardContent();
+      case '/client/explore':
+      default:
+        return const ClientExploreContent();
     }
   }
 
@@ -91,7 +91,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
       leading: Padding(
         padding: const EdgeInsets.only(left: 24),
         child: GestureDetector(
-          onTap: () => context.go('/dashboard/client'),
+          onTap: () => _navigateToRoute('/dashboard/client'),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -157,7 +157,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (int i = 0; i < 5; i++)
+          for (int i = 0; i < 4; i++) // Show first 4 items on desktop
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: _NavButton(
@@ -200,6 +200,20 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
   Widget _buildProfileMenu(BuildContext context, UserModel? currentUser, AuthNotifier authNotifier) {
     return PopupMenuButton<String>(
       offset: const Offset(0, 50),
+      onSelected: (value) {
+        // Handle profile menu selections
+        if (value == 'profile') {
+          context.push('/profile'); // Make sure you have this route in your GoRouter config
+        } else if (value == 'account') {
+          context.push('/client/account');
+        } else if (value == 'help') {
+          context.push('/client/help');
+        } else if (value == 'about') {
+          _navigateToRoute('/client/about');
+        } else if (value == 'contact') {
+          _navigateToRoute('/client/contact');
+        }
+      },
       itemBuilder: (context) => [
         PopupMenuItem(
           value: 'profile',
@@ -231,9 +245,22 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
           ),
         ),
         const PopupMenuDivider(),
-        const PopupMenuItem(value: 'account', child: ListTile(leading: Icon(Icons.settings), title: Text('Account settings'))),
-        const PopupMenuItem(value: 'help', child: ListTile(leading: Icon(Icons.help), title: Text('Help Center'))),
-        const PopupMenuItem(value: 'about', child: ListTile(leading: Icon(Icons.info), title: Text('About Premisave'))),
+        const PopupMenuItem(
+          value: 'account',
+          child: ListTile(leading: Icon(Icons.settings), title: Text('Account settings')),
+        ),
+        const PopupMenuItem(
+          value: 'help',
+          child: ListTile(leading: Icon(Icons.help), title: Text('Help Center')),
+        ),
+        const PopupMenuItem(
+          value: 'about',
+          child: ListTile(leading: Icon(Icons.info), title: Text('About Premisave')),
+        ),
+        const PopupMenuItem(
+          value: 'contact',
+          child: ListTile(leading: Icon(Icons.contact_support), title: Text('Contact Us')),
+        ),
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'logout',
@@ -253,7 +280,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
         ),
         child: Row(
           children: [
-            Icon(Icons.menu, color: Colors.grey[700]),
+            const Icon(Icons.menu, color: Colors.grey),
             const SizedBox(width: 8),
             CircleAvatar(
               radius: 16,
@@ -289,16 +316,16 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
           label: 'Explore',
         ),
         BottomNavigationBarItem(
+          icon: Icon(Icons.home),
+          label: 'Home',
+        ),
+        BottomNavigationBarItem(
           icon: Icon(Icons.calendar_month),
           label: 'Bookings',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.favorite_border),
           label: 'Wishlists',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.message),
-          label: 'Messages',
         ),
       ],
     );
