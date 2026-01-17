@@ -39,10 +39,13 @@ class _ClientDashboardContentState extends ConsumerState<ClientDashboardContent>
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final isSmallScreen = MediaQuery.of(context).size.width < 768;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(isSmallScreen ? 12 : 24),
+      padding: EdgeInsets.symmetric(
+        horizontal: screenWidth < 600 ? 12 : 24,
+        vertical: screenWidth < 600 ? 8 : 16,
+      ),
       child: AnimatedBuilder(
         animation: _animationController,
         builder: (context, child) => FadeTransition(
@@ -51,11 +54,11 @@ class _ClientDashboardContentState extends ConsumerState<ClientDashboardContent>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _WelcomeCard(user: authState.currentUser),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               _DashboardGrid(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               _QuickActionsGrid(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               _TrendingPropertiesSection(),
             ],
           ),
@@ -72,6 +75,8 @@ class _WelcomeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasProfilePic = user?.profilePictureUrl?.isNotEmpty == true;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
 
     return Container(
       decoration: BoxDecoration(
@@ -89,7 +94,7 @@ class _WelcomeCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
       child: Row(
         children: [
           Expanded(
@@ -100,23 +105,23 @@ class _WelcomeCard extends StatelessWidget {
                   'Welcome back,',
                   style: TextStyle(
                     color: Colors.grey[700],
-                    fontSize: 14,
+                    fontSize: isSmallScreen ? 12 : 14,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   user?.firstName ?? 'Guest',
-                  style: const TextStyle(
-                    fontSize: 28,
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 22 : 28,
                     fontWeight: FontWeight.w700,
                     color: Colors.black,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: isSmallScreen ? 8 : 12),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: isSmallScreen ? 6 : 8,
+                  runSpacing: isSmallScreen ? 6 : 8,
                   children: [
                     _buildStatusChip('Active', Icons.verified, Colors.green),
                     _buildStatusChip('Premium', Icons.diamond, Colors.blue),
@@ -126,22 +131,23 @@ class _WelcomeCard extends StatelessWidget {
               ],
             ),
           ),
+          SizedBox(width: isSmallScreen ? 12 : 16),
           Container(
-            width: 80,
-            height: 80,
+            width: isSmallScreen ? 60 : 80,
+            height: isSmallScreen ? 60 : 80,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: Colors.green, width: 2),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(40),
+              borderRadius: BorderRadius.circular(isSmallScreen ? 30 : 40),
               child: hasProfilePic
                   ? Image.network(
                 user!.profilePictureUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _buildProfileFallback(),
+                errorBuilder: (_, __, ___) => _buildProfileFallback(isSmallScreen),
               )
-                  : _buildProfileFallback(),
+                  : _buildProfileFallback(isSmallScreen),
             ),
           ),
         ],
@@ -149,12 +155,12 @@ class _WelcomeCard extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileFallback() {
+  Widget _buildProfileFallback(bool isSmallScreen) {
     return Container(
       color: Colors.green[100],
-      child: const Icon(
+      child: Icon(
         Icons.person,
-        size: 40,
+        size: isSmallScreen ? 30 : 40,
         color: Colors.green,
       ),
     );
@@ -162,21 +168,21 @@ class _WelcomeCard extends StatelessWidget {
 
   Widget _buildStatusChip(String text, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
+          Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
           Text(
             text,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 10,
               fontWeight: FontWeight.w600,
               color: color,
             ),
@@ -197,26 +203,45 @@ class _DashboardGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
-    final crossAxisCount = isSmallScreen ? 2 : 4;
-    final spacing = isSmallScreen ? 12.0 : 16.0;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Responsive grid logic
+    int crossAxisCount;
+    if (screenWidth < 400) {
+      crossAxisCount = 2;
+    } else if (screenWidth < 768) {
+      crossAxisCount = 2;
+    } else if (screenWidth < 1024) {
+      crossAxisCount = 4;
+    } else {
+      crossAxisCount = 4;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _SectionTitle('My Overview'),
         const SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: spacing,
-            mainAxisSpacing: spacing,
-            childAspectRatio: 1.2,
-          ),
-          itemCount: stats.length,
-          itemBuilder: (context, index) => _StatCard(info: stats[index]),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Calculate child aspect ratio based on screen size
+            final childAspectRatio = screenWidth < 400 ? 1.3 :
+            screenWidth < 600 ? 1.5 :
+            screenWidth < 1024 ? 1.2 : 1.1;
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: childAspectRatio,
+              ),
+              itemCount: stats.length,
+              itemBuilder: (context, index) => _StatCard(info: stats[index]),
+            );
+          },
         ),
       ],
     );
@@ -237,6 +262,9 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -249,33 +277,35 @@ class _StatCard extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
         ),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(isSmallScreen ? 6 : 8),
               decoration: BoxDecoration(
                 color: info.color.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: Icon(info.icon, color: info.color, size: 20),
+              child: Icon(info.icon, color: info.color, size: isSmallScreen ? 16 : 20),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: isSmallScreen ? 8 : 12),
             Text(
               info.value,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: isSmallScreen ? 16 : 20,
                 fontWeight: FontWeight.w700,
                 color: info.color,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: isSmallScreen ? 2 : 4),
             Text(
               info.title,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: isSmallScreen ? 10 : 12,
                 color: Colors.grey[600],
                 fontWeight: FontWeight.w500,
               ),
@@ -297,25 +327,45 @@ class _QuickActionsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
-    final crossAxisCount = isSmallScreen ? 2 : 4;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Responsive grid logic
+    int crossAxisCount;
+    if (screenWidth < 400) {
+      crossAxisCount = 2;
+    } else if (screenWidth < 768) {
+      crossAxisCount = 2;
+    } else if (screenWidth < 1024) {
+      crossAxisCount = 4;
+    } else {
+      crossAxisCount = 4;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _SectionTitle('Quick Actions'),
         const SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.5,
-          ),
-          itemCount: actions.length,
-          itemBuilder: (context, index) => _ActionCard(action: actions[index]),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Calculate child aspect ratio based on screen size
+            final childAspectRatio = screenWidth < 400 ? 1.8 :
+            screenWidth < 600 ? 1.6 :
+            screenWidth < 1024 ? 1.4 : 1.5;
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: childAspectRatio,
+              ),
+              itemCount: actions.length,
+              itemBuilder: (context, index) => _ActionCard(action: actions[index]),
+            );
+          },
         ),
       ],
     );
@@ -335,6 +385,9 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -342,23 +395,23 @@ class _ActionCard extends StatelessWidget {
         onTap: () {},
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
                 decoration: BoxDecoration(
                   color: action.color.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(action.icon, color: action.color, size: 24),
+                child: Icon(action.icon, color: action.color, size: isSmallScreen ? 20 : 24),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: isSmallScreen ? 8 : 12),
               Text(
                 action.title,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: isSmallScreen ? 12 : 14,
                   fontWeight: FontWeight.w600,
                   color: action.color,
                 ),
@@ -408,8 +461,7 @@ class _TrendingPropertiesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
-    final itemCount = isSmallScreen ? 2 : 3;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,19 +483,49 @@ class _TrendingPropertiesSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        SizedBox(
-          height: 220,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: itemCount,
-            itemBuilder: (context, index) => Padding(
-              padding: EdgeInsets.only(right: index < itemCount - 1 ? 16 : 0),
-              child: _TrendingPropertyCard(
-                property: trendingProperties[index],
-                onTap: () => _showPropertyDetails(context, trendingProperties[index]),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Responsive card width calculation
+            final availableWidth = constraints.maxWidth;
+            double cardWidth;
+            int itemCount;
+
+            if (screenWidth < 400) {
+              cardWidth = availableWidth * 0.75;
+              itemCount = 1;
+            } else if (screenWidth < 600) {
+              cardWidth = availableWidth * 0.6;
+              itemCount = 2;
+            } else if (screenWidth < 900) {
+              cardWidth = availableWidth * 0.45;
+              itemCount = 2;
+            } else {
+              cardWidth = availableWidth * 0.3;
+              itemCount = 3;
+            }
+
+            // Ensure card has minimum and maximum width
+            cardWidth = cardWidth.clamp(180, 280);
+
+            return SizedBox(
+              height: screenWidth < 400 ? 200 : 220,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: itemCount,
+                itemBuilder: (context, index) => Padding(
+                  padding: EdgeInsets.only(
+                    right: index < itemCount - 1 ? 12 : 0,
+                    left: index == 0 ? 0 : 0,
+                  ),
+                  child: _TrendingPropertyCard(
+                    property: trendingProperties[index],
+                    width: cardWidth,
+                    onTap: () => _showPropertyDetails(context, trendingProperties[index]),
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ],
     );
@@ -497,18 +579,23 @@ class _TrendingPropertiesSection extends StatelessWidget {
 class _TrendingPropertyCard extends StatelessWidget {
   final Map<String, dynamic> property;
   final VoidCallback onTap;
+  final double width;
 
   const _TrendingPropertyCard({
     required this.property,
     required this.onTap,
+    required this.width,
   });
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
+
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 180,
+        width: width,
         child: Card(
           elevation: 4,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -538,9 +625,9 @@ class _TrendingPropertyCard extends StatelessWidget {
                             ),
                             child: Text(
                               property['badge'],
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 10,
+                                fontSize: isSmallScreen ? 9 : 10,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -551,14 +638,14 @@ class _TrendingPropertyCard extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       property['title'],
-                      style: const TextStyle(
-                        fontSize: 14,
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 13 : 14,
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 1,
@@ -568,29 +655,38 @@ class _TrendingPropertyCard extends StatelessWidget {
                     Text(
                       property['location'],
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: isSmallScreen ? 11 : 12,
                         color: Colors.grey[600],
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          property['dailyPrice'],
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.green[800],
+                        Flexible(
+                          child: Text(
+                            property['dailyPrice'],
+                            style: TextStyle(
+                              fontSize: isSmallScreen ? 13 : 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.green[800],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Row(
                           children: [
-                            Icon(Icons.star, size: 14, color: Colors.amber[600]),
+                            Icon(Icons.star, size: isSmallScreen ? 12 : 14, color: Colors.amber[600]),
                             const SizedBox(width: 2),
                             Text(
                               property['rating'].toString(),
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 11 : 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
@@ -613,10 +709,12 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 20,
+      style: TextStyle(
+        fontSize: screenWidth < 400 ? 18 : 20,
         fontWeight: FontWeight.w700,
         color: Colors.black,
       ),

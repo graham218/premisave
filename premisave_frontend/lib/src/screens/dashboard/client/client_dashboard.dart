@@ -27,10 +27,22 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
   final List<Map<String, dynamic>> _menuItems = [
     {'icon': Icons.search, 'label': 'Explore', 'route': '/client/explore'},
     {'icon': Icons.home, 'label': 'Home', 'route': '/dashboard/client'},
-    {'icon': Icons.calendar_month, 'label': 'Bookings', 'route': '/client/bookings'},
-    {'icon': Icons.favorite_border, 'label': 'Wishlists', 'route': '/client/wishlists'},
+    {
+      'icon': Icons.calendar_month,
+      'label': 'Bookings',
+      'route': '/client/bookings'
+    },
+    {
+      'icon': Icons.favorite_border,
+      'label': 'Wishlists',
+      'route': '/client/wishlists'
+    },
     {'icon': Icons.payments, 'label': 'Payments', 'route': '/client/payments'},
-    {'icon': Icons.receipt_long, 'label': 'Transactions', 'route': '/client/transactions'},
+    {
+      'icon': Icons.receipt_long,
+      'label': 'Transactions',
+      'route': '/client/transactions'
+    },
     {'icon': Icons.message, 'label': 'Messages', 'route': '/client/messages'},
   ];
 
@@ -75,30 +87,31 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: _buildAppBar(isMobile, context, authState.currentUser, authNotifier),
+      appBar:
+          _buildAppBar(isMobile, context, authState.currentUser, authNotifier),
       body: _getCurrentContent(),
       bottomNavigationBar: isMobile ? _buildBottomNavigationBar() : null,
     );
   }
 
   PreferredSizeWidget _buildAppBar(
-      bool isMobile,
-      BuildContext context,
-      UserModel? currentUser,
-      AuthNotifier authNotifier,
-      ) {
+    bool isMobile,
+    BuildContext context,
+    UserModel? currentUser,
+    AuthNotifier authNotifier,
+  ) {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0.5,
       surfaceTintColor: Colors.white,
-      leadingWidth: isMobile ? 180 : null,
-      leading: isMobile ? _buildLogo() : null,
+      leadingWidth: isMobile ? 140 : 180,
+      // Reduced for desktop too
+      leading: _buildLogo(),
+      // Logo always on left for both mobile and desktop
       centerTitle: !isMobile,
       title: !isMobile ? _buildDesktopNavigation() : null,
       actions: [
-        if (!isMobile) _buildLogo(),
-        if (!isMobile)
-          _buildLanguageCurrencySelector(),
+        if (!isMobile) _buildLanguageCurrencySelector(),
         _buildProfileMenu(context, currentUser, authNotifier),
       ],
     );
@@ -106,22 +119,22 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
 
   Widget _buildLogo() {
     return Padding(
-      padding: const EdgeInsets.only(left: 24),
+      padding: const EdgeInsets.only(left: 16), // Reduced padding
       child: GestureDetector(
         onTap: () => _navigateToRoute('/dashboard/client'),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 32, // Reduced from 40
+              height: 32, // Reduced from 40
               decoration: BoxDecoration(
                 color: const Color(0xFF00A699),
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF00A699).withOpacity(0.2),
-                    blurRadius: 8,
+                    blurRadius: 6, // Slightly reduced
                     offset: const Offset(0, 2),
                   ),
                 ],
@@ -131,19 +144,19 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
                   'P',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 16, // Reduced from 20
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Circular',
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8), // Reduced from 12
             const Text(
               'Premisave',
               style: TextStyle(
                 color: Color(0xFF00A699),
-                fontSize: 22,
+                fontSize: 18, // Reduced from 22
                 fontWeight: FontWeight.w700,
                 fontFamily: 'Circular',
                 letterSpacing: -0.5,
@@ -202,7 +215,8 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
                 }).toList();
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -237,20 +251,24 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
           children: [
             Icon(Icons.language, size: 20, color: Colors.black87),
             SizedBox(width: 4),
-            Text('EN | KES', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            Text('EN | KES',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
       itemBuilder: (context) => [
         const PopupMenuItem<String>(value: 'en', child: Text('English')),
         const PopupMenuItem<String>(value: 'sw', child: Text('Swahili')),
-        const PopupMenuItem<String>(value: 'kes', child: Text('KES - Kenyan Shilling')),
-        const PopupMenuItem<String>(value: 'usd', child: Text('USD - US Dollar')),
+        const PopupMenuItem<String>(
+            value: 'kes', child: Text('KES - Kenyan Shilling')),
+        const PopupMenuItem<String>(
+            value: 'usd', child: Text('USD - US Dollar')),
       ],
     );
   }
 
-  Widget _buildProfileMenu(BuildContext context, UserModel? currentUser, AuthNotifier authNotifier) {
+  Widget _buildProfileMenu(
+      BuildContext context, UserModel? currentUser, AuthNotifier authNotifier) {
     return PopupMenuButton<String>(
       offset: const Offset(0, 50),
       onSelected: (value) {
@@ -294,7 +312,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
                           child: CircularProgressIndicator(
                             value: loadingProgress.expectedTotalBytes != null
                                 ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
+                                    loadingProgress.expectedTotalBytes!
                                 : null,
                             strokeWidth: 2,
                             color: const Color(0xFF00A699),
@@ -306,7 +324,10 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
                           radius: 16,
                           backgroundColor: const Color(0xFF00A699),
                           child: Text(
-                            currentUser.firstName?.substring(0, 1).toUpperCase() ?? 'U',
+                            currentUser.firstName
+                                    ?.substring(0, 1)
+                                    .toUpperCase() ??
+                                'U',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -323,7 +344,8 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
                   radius: 16,
                   backgroundColor: const Color(0xFF00A699),
                   child: Text(
-                    currentUser?.firstName?.substring(0, 1).toUpperCase() ?? 'U',
+                    currentUser?.firstName?.substring(0, 1).toUpperCase() ??
+                        'U',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -351,19 +373,23 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
         const PopupMenuDivider(),
         const PopupMenuItem<String>(
           value: 'account',
-          child: ListTile(leading: Icon(Icons.settings), title: Text('Account settings')),
+          child: ListTile(
+              leading: Icon(Icons.settings), title: Text('Account settings')),
         ),
         const PopupMenuItem<String>(
           value: 'help',
-          child: ListTile(leading: Icon(Icons.help), title: Text('Help Center')),
+          child:
+              ListTile(leading: Icon(Icons.help), title: Text('Help Center')),
         ),
         const PopupMenuItem<String>(
           value: 'about',
-          child: ListTile(leading: Icon(Icons.info), title: Text('About Premisave')),
+          child: ListTile(
+              leading: Icon(Icons.info), title: Text('About Premisave')),
         ),
         const PopupMenuItem<String>(
           value: 'contact',
-          child: ListTile(leading: Icon(Icons.contact_support), title: Text('Contact Us')),
+          child: ListTile(
+              leading: Icon(Icons.contact_support), title: Text('Contact Us')),
         ),
         const PopupMenuDivider(),
         PopupMenuItem<String>(
@@ -409,7 +435,7 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
                         child: CircularProgressIndicator(
                           value: loadingProgress.expectedTotalBytes != null
                               ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
+                                  loadingProgress.expectedTotalBytes!
                               : null,
                           strokeWidth: 2,
                           color: const Color(0xFF00A699),
@@ -421,7 +447,10 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
                         radius: 16,
                         backgroundColor: const Color(0xFF00A699),
                         child: Text(
-                          currentUser.firstName?.substring(0, 1).toUpperCase() ?? 'U',
+                          currentUser.firstName
+                                  ?.substring(0, 1)
+                                  .toUpperCase() ??
+                              'U',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -523,7 +552,9 @@ class _ClientDashboardState extends ConsumerState<ClientDashboard> {
                     Navigator.pop(context);
                     _navigateToRoute(item['route']);
                   },
-                  tileColor: _selectedIndex == index ? const Color(0xFF00A699).withOpacity(0.1) : null,
+                  tileColor: _selectedIndex == index
+                      ? const Color(0xFF00A699).withOpacity(0.1)
+                      : null,
                 );
               }),
               const SizedBox(height: 8),
