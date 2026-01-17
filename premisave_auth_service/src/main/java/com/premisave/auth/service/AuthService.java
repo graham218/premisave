@@ -293,8 +293,8 @@ public class AuthService {
         );
     }
 
-    public void resetPassword(ResetPasswordRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+    public void forgotPassword(String email) {
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("No account found with this email"));
 
         String resetToken = generateToken(user, TokenType.RESET_PASSWORD);
@@ -312,6 +312,37 @@ public class AuthService {
                 "Reset Your Premisave Password",
                 emailContent
         );
+    }
+
+    public void confirmResetPassword(ResetPasswordConfirmRequest request) {
+        // Validate passwords match
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("New passwords do not match");
+        }
+
+        // Find and validate token
+        Token token = tokenRepository.findByToken(request.getToken())
+                .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
+
+        if (token.isUsed() || token.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Reset token has expired or already been used");
+        }
+
+        if (token.getType() != TokenType.RESET_PASSWORD) {
+            throw new RuntimeException("Invalid token type");
+        }
+
+        // Get user and update password
+        User user = token.getUser();
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        // Mark token as used
+        token.setUsed(true);
+        tokenRepository.save(token);
+
+        // Clear cached user
+        redisTemplate.delete("user:" + user.getId());
     }
 
     public void changePassword(ChangePasswordRequest request) {

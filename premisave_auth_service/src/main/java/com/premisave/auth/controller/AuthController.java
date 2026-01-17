@@ -43,17 +43,21 @@ public class AuthController {
         return ResponseEntity.ok("Activation link resent");
     }
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        authService.resetPassword(request);
-        return ResponseEntity.ok("Reset link sent");
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok("Password reset link sent to your email");
+    }
+
+    @PostMapping("/reset-password/confirm")
+    public ResponseEntity<String> confirmResetPassword(@Valid @RequestBody ResetPasswordConfirmRequest request) {
+        authService.confirmResetPassword(request);
+        return ResponseEntity.ok("Password has been reset successfully");
     }
 
     @PostMapping("/change-password")
     public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);
-        return ResponseEntity.ok("Password changed");
+        return ResponseEntity.ok("Password changed successfully");
     }
-
-    // OAuth2 endpoints handled by Spring Security OAuth2
 }
