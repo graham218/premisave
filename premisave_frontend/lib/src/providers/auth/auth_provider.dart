@@ -198,34 +198,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-
   Future<void> verifyAccount(String token) async {
-    print('DEBUG: Starting verification for token: $token');
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      print('DEBUG: Making API call to /auth/verify/$token');
+    print('PROVIDER: Starting verification for token: $token');
+    state = state.copyWith(isLoading: true, error: null, shouldRedirectToLogin: false);
 
-      // Use ResponseType.plain since backend returns plain text
+    try {
+      print('PROVIDER: Calling /auth/verify/$token');
+
       final response = await _dio.get(
         '/auth/verify/$token',
         options: Options(responseType: ResponseType.plain),
       );
 
-      print('DEBUG: API Response status: ${response.statusCode}');
-      print('DEBUG: API Response data: ${response.data}');
+      print('PROVIDER: Response status: ${response.statusCode}');
+      print('PROVIDER: Response data: ${response.data}');
 
       if (response.statusCode == 200) {
-        ToastUtils.showSuccessToast('Account verified successfully! You can now login.');
+        print('PROVIDER: Verification successful');
         state = state.copyWith(
           isLoading: false,
           shouldRedirectToLogin: true,
         );
-        print('DEBUG: Verification successful');
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          type: DioExceptionType.badResponse,
+        );
       }
     } on DioException catch (e) {
-      print('DEBUG: DioException during verification: $e');
-      print('DEBUG: Response status: ${e.response?.statusCode}');
-      print('DEBUG: Response data: ${e.response?.data}');
+      print('PROVIDER: DioException: ${e.message}');
+      print('PROVIDER: Status code: ${e.response?.statusCode}');
 
       String errorMessage = 'Verification failed';
 
@@ -233,25 +236,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
         errorMessage = 'Invalid or expired verification link';
       } else if (e.response?.statusCode == 400) {
         errorMessage = 'Account already verified';
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        errorMessage = 'Connection timeout. Please check your internet.';
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = 'Cannot connect to server. Please try again later.';
       } else {
-        // Try to extract error message from plain text response
         final responseData = e.response?.data;
         if (responseData is String && responseData.isNotEmpty) {
           errorMessage = responseData;
-        } else {
-          errorMessage = _getUserFriendlyErrorMessage(e);
         }
       }
 
-      ToastUtils.showErrorToast(errorMessage);
-      state = state.copyWith(error: errorMessage, isLoading: false);
+      print('PROVIDER: Setting error: $errorMessage');
+      state = state.copyWith(
+        error: errorMessage,
+        isLoading: false,
+        shouldRedirectToLogin: false,
+      );
     } catch (e) {
-      print('DEBUG: General exception during verification: $e');
-      ToastUtils.showErrorToast('An unexpected error occurred');
-      state = state.copyWith(error: 'An unexpected error occurred', isLoading: false);
+      print('PROVIDER: General exception: $e');
+      state = state.copyWith(
+        error: 'An unexpected error occurred',
+        isLoading: false,
+        shouldRedirectToLogin: false,
+      );
     }
   }
-
 
 
   Future<void> signIn(String email, String password) async {
@@ -610,6 +620,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> _testBackendConnection() async {
+    print('DEBUG: Testing backend connection to ${AppConfig.baseUrl}');
+    try {
+      final response = await _dio.get('/auth/test');
+      print('DEBUG: Backend is reachable: ${response.statusCode}');
+    } catch (e) {
+      print('DEBUG: Cannot reach backend: $e');
+      // Try with a direct ping
+      try {
+        final response = await _dio.get('http://localhost:8080');
+        print('DEBUG: Direct ping to localhost:8080: ${response.statusCode}');
+      } catch (e2) {
+        print('DEBUG: Cannot even ping localhost: $e2');
+      }
+    }
+  }
 
   Future<void> confirmLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(

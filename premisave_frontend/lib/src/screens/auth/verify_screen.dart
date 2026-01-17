@@ -17,11 +17,13 @@ class VerifyScreen extends ConsumerStatefulWidget {
 class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _hasVerified = false;
-  String? _error;
+  bool _verificationAttempted = false;
 
   @override
   void initState() {
     super.initState();
+    print('SCREEN: VerifyScreen init with token: ${widget.verificationToken}');
+
     if (widget.verificationToken != null) {
       _verifyToken();
     }
@@ -34,19 +36,11 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   }
 
   Future<void> _verifyToken() async {
+    print('SCREEN: Starting verification via provider');
+    setState(() => _verificationAttempted = true);
+
     final notifier = ref.read(authProvider.notifier);
     await notifier.verifyAccount(widget.verificationToken!);
-
-    // Check the state after verification
-    final state = ref.read(authProvider);
-    if (state.shouldRedirectToLogin && !state.isLoading) {
-      setState(() => _hasVerified = true);
-      // Wait 2 seconds then redirect to login
-      await Future.delayed(const Duration(seconds: 2));
-      if (context.mounted) context.go('/login');
-    } else if (state.error != null) {
-      setState(() => _error = state.error);
-    }
   }
 
   Future<void> _resendActivation() async {
@@ -62,7 +56,13 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       return;
     }
 
-    await ref.read(authProvider.notifier).resendActivation(email);
+    final notifier = ref.read(authProvider.notifier);
+    await notifier.resendActivation(email);
+
+    // Clear the email field after successful resend
+    if (ref.read(authProvider).error == null) {
+      _emailController.clear();
+    }
   }
 
   void _showContactDialog() {
@@ -70,9 +70,9 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Contact Support'),
-        content: const SizedBox(
+        content: SizedBox(
           width: double.maxFinite,
-          child: ContactContent(),
+          child: const ContactContent(),
         ),
         actions: [
           TextButton(
@@ -89,6 +89,28 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     final authState = ref.watch(authProvider);
     final isLargeScreen = MediaQuery.of(context).size.width > 700;
 
+    print('SCREEN: Building widget. isLoading: ${authState.isLoading}, error: ${authState.error}, shouldRedirect: ${authState.shouldRedirectToLogin}');
+
+    // Handle successful verification
+    if (_verificationAttempted &&
+        !authState.isLoading &&
+        authState.shouldRedirectToLogin &&
+        !_hasVerified) {
+      print('SCREEN: Verification successful, showing success UI');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() => _hasVerified = true);
+        ToastUtils.showSuccessToast('Account verified successfully!');
+
+        // Redirect after delay
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            print('SCREEN: Redirecting to login');
+            context.go('/login');
+          }
+        });
+      });
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -101,63 +123,8 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: isLargeScreen
-                ? Container(
-              constraints: const BoxConstraints(maxWidth: 900),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 6)),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF0A2463),
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          bottomLeft: Radius.circular(16),
-                        ),
-                      ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(40),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(Icons.verified_user_outlined, color: Colors.white, size: 80),
-                            SizedBox(height: 24),
-                            Text(
-                              "Verify Your Account",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              "Complete your registration to start investing.",
-                              style: TextStyle(color: Colors.white70, fontSize: 16),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(40),
-                      child: _buildVerificationContent(authState),
-                    ),
-                  ),
-                ],
-              ),
-            )
-                : Container(
+            child: Container(
+              width: isLargeScreen ? 600 : double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -166,7 +133,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
                   BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 6)),
                 ],
               ),
-              child: _buildVerificationContent(authState),
+              child: _buildContent(authState),
             ),
           ),
         ),
@@ -174,10 +141,10 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     );
   }
 
-  Widget _buildVerificationContent(AuthState authState) {
-    // If we have a token, show verification status
+  Widget _buildContent(AuthState authState) {
+    // If token is provided, show verification status
     if (widget.verificationToken != null) {
-      if (authState.isLoading) {
+      if (authState.isLoading && _verificationAttempted) {
         return const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -213,7 +180,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
         );
       }
 
-      if (_error != null || authState.error != null) {
+      if (authState.error != null && _verificationAttempted) {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -225,12 +192,12 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              _error ?? authState.error ?? 'Unknown error',
+              authState.error!,
               style: const TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 30),
-            _buildResendForm(),
+            _buildResendForm(authState),
           ],
         );
       }
@@ -247,20 +214,20 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0A2463)),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Enter your email to resend the verification link',
-          style: TextStyle(color: Colors.black54),
+        Text(
+          widget.verificationToken != null
+              ? 'Enter your email to resend the verification link'
+              : 'Check your email for the verification link',
+          style: const TextStyle(color: Colors.black54),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 30),
-        _buildResendForm(),
+        _buildResendForm(authState),
       ],
     );
   }
 
-  Widget _buildResendForm() {
-    final authState = ref.watch(authProvider);
-
+  Widget _buildResendForm(AuthState authState) {
     return Column(
       children: [
         TextField(
